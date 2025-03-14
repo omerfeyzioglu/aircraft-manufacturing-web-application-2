@@ -58,7 +58,7 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
 - Aviyonik Takımı (Avionics Team)
 - Montaj Takımı (Assembly Team)
 
-## 💻 Teknoloji Yığını
+## 💻 Kullanılan Teknolojiler
 
 ### Backend
 
