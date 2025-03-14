@@ -1,0 +1,246 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Takımlar - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-users text-primary"></i> Takım Listesi
+            </h5>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTeamModal">
+                <i class="fas fa-plus"></i> Yeni Takım
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover" id="teamsTable">
+                <thead>
+                    <tr>
+                        <th>Takım Adı</th>
+                        <th>Takım Tipi</th>
+                        <th>Üye Sayısı</th>
+                        <th>Toplam Üretim</th>
+                        <th>Oluşturulma</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in teams %}
+                    <tr>
+                        <td>{{ team.name }}</td>
+                        <td>{{ team.get_team_type_display }}</td>
+                        <td>{{ team.members.count }}</td>
+                        <td>{{ team.production_set.count }}</td>
+                        <td>{{ team.created_at|date:"d.m.Y" }}</td>
+                        <td>
+                            <button type="button" class="btn btn-info btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editTeamModal"
+                                    data-team-id="{{ team.id }}"
+                                    data-team-name="{{ team.name }}"
+                                    data-team-type="{{ team.team_type }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button type="button" class="btn btn-primary btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#membersModal"
+                                    data-team-id="{{ team.id }}"
+                                    data-team-name="{{ team.name }}">
+                                <i class="fas fa-user-plus"></i>
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#deleteTeamModal"
+                                    data-team-id="{{ team.id }}"
+                                    data-team-name="{{ team.name }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Yeni Takım Modal -->
+<div class="modal fade" id="addTeamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Takım Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addTeamForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Takım Adı</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="team_type" class="form-label">Takım Tipi</label>
+                        <select class="form-select" id="team_type" name="team_type" required>
+                            <option value="">Seçiniz...</option>
+                            {% for type_id, type_name in team_types %}
+                            <option value="{{ type_id }}">{{ type_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Düzenleme Modal -->
+<div class="modal fade" id="editTeamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Takım Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editTeamForm" method="post">
+                {% csrf_token %}
+                <input type="hidden" id="edit_team_id" name="team_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_name" class="form-label">Takım Adı</label>
+                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_team_type" class="form-label">Takım Tipi</label>
+                        <select class="form-select" id="edit_team_type" name="team_type" required>
+                            {% for type_id, type_name in team_types %}
+                            <option value="{{ type_id }}">{{ type_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Üye Yönetimi Modal -->
+<div class="modal fade" id="membersModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Takım Üyeleri</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="membersForm" method="post">
+                {% csrf_token %}
+                <input type="hidden" id="members_team_id" name="team_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="members" class="form-label">Üyeler</label>
+                        <select class="form-select" id="members" name="members" multiple required>
+                            {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Birden fazla üye seçmek için CTRL tuşunu basılı tutun.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Silme Modal -->
+<div class="modal fade" id="deleteTeamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Takım Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="deleteTeamForm" method="post">
+                {% csrf_token %}
+                <input type="hidden" id="delete_team_id" name="team_id">
+                <div class="modal-body">
+                    <p>
+                        <strong><span id="delete_team_name"></span></strong> takımını silmek istediğinize emin misiniz?
+                    </p>
+                    <p class="text-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Bu işlem geri alınamaz!
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-danger">Sil</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // DataTable initialization
+    const table = new DataTable('#teamsTable', {
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json',
+        },
+        order: [[4, 'desc']],
+    });
+
+    // Edit modal
+    const editModal = document.getElementById('editTeamModal');
+    editModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const teamId = button.getAttribute('data-team-id');
+        const teamName = button.getAttribute('data-team-name');
+        const teamType = button.getAttribute('data-team-type');
+
+        editModal.querySelector('#edit_team_id').value = teamId;
+        editModal.querySelector('#edit_name').value = teamName;
+        editModal.querySelector('#edit_team_type').value = teamType;
+    });
+
+    // Members modal
+    const membersModal = document.getElementById('membersModal');
+    membersModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const teamId = button.getAttribute('data-team-id');
+        const teamName = button.getAttribute('data-team-name');
+
+        membersModal.querySelector('#members_team_id').value = teamId;
+        membersModal.querySelector('.modal-title').textContent = `${teamName} - Üye Yönetimi`;
+    });
+
+    // Delete modal
+    const deleteModal = document.getElementById('deleteTeamModal');
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const teamId = button.getAttribute('data-team-id');
+        const teamName = button.getAttribute('data-team-name');
+
+        deleteModal.querySelector('#delete_team_id').value = teamId;
+        deleteModal.querySelector('#delete_team_name').textContent = teamName;
+    });
+});
+</script>
+{% endblock %} 

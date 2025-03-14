@@ -1,0 +1,254 @@
+{% extends 'production/base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>Hoş Geldiniz, {{ user.get_full_name }}</h2>
+        <p class="text-muted">{{ user.team.name }} ekibindesiniz.</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-cogs text-primary"></i> Parçalar
+                </h5>
+                <p class="card-text">
+                    Toplam {{ total_parts }} parça<br>
+                    {{ low_stock_parts }} parça düşük stokta
+                </p>
+                <a href="{% url 'parts_list' %}" class="btn btn-primary">
+                    <i class="fas fa-arrow-right"></i> Parçaları Yönet
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-users text-success"></i> Takımlar
+                </h5>
+                <p class="card-text">
+                    Toplam {{ total_teams }} takım<br>
+                    {{ total_members }} aktif üye
+                </p>
+                <a href="{% url 'teams_list' %}" class="btn btn-success">
+                    <i class="fas fa-arrow-right"></i> Takımları Görüntüle
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-plane text-info"></i> Uçaklar
+                </h5>
+                <p class="card-text">
+                    {{ in_production }} uçak üretimde<br>
+                    {{ completed }} uçak tamamlandı
+                </p>
+                <a href="{% url 'aircraft_list' %}" class="btn btn-info">
+                    <i class="fas fa-arrow-right"></i> Uçakları Görüntüle
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if user.team.team_type != 'ASSEMBLY' %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-history"></i> Son Üretimleriniz
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_productions %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Parça</th>
+                                <th>Miktar</th>
+                                <th>Tarih</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for production in recent_productions %}
+                            <tr>
+                                <td>{{ production.part.name }}</td>
+                                <td>{{ production.quantity }}</td>
+                                <td>{{ production.created_at|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">Henüz üretim yapmadınız.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Düşük Stok Uyarıları
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if low_stock_parts_list %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Parça</th>
+                                <th>Stok</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for part in low_stock_parts_list %}
+                            <tr>
+                                <td>{{ part.name }}</td>
+                                <td>
+                                    <span class="badge bg-warning">{{ part.stock }}</span>
+                                </td>
+                                <td>
+                                    {% if part.team_type == user.team.team_type %}
+                                    <button class="btn btn-sm btn-primary produce-part" data-id="{{ part.id }}">
+                                        <i class="fas fa-plus"></i> Üret
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">Tüm parçaların stok seviyeleri yeterli.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tasks"></i> Montaj Bekleyen Uçaklar
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if pending_aircraft %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Uçak Tipi</th>
+                                <th>Başlangıç Tarihi</th>
+                                <th>Durum</th>
+                                <th>İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for aircraft in pending_aircraft %}
+                            <tr>
+                                <td>{{ aircraft.aircraft_type }}</td>
+                                <td>{{ aircraft.created_at|date:"d.m.Y H:i" }}</td>
+                                <td>
+                                    {% if aircraft.is_complete %}
+                                    <span class="badge bg-success">Hazır</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Eksik Parça</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'aircraft_list' %}" class="btn btn-sm btn-info">
+                                        <i class="fas fa-search"></i> İncele
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">Montaj bekleyen uçak bulunmuyor.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Parça Üretim Modal -->
+<div class="modal fade" id="producePartModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Parça Üret</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="producePartForm">
+                    <input type="hidden" name="part_id">
+                    <div class="mb-3">
+                        <label class="form-label">Miktar</label>
+                        <input type="number" class="form-control" name="quantity" min="1" value="1" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="producePartBtn">Üret</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Parça üretim modalını aç
+    $(document).on('click', '.produce-part', function() {
+        var partId = $(this).data('id');
+        $('#producePartForm input[name="part_id"]').val(partId);
+        $('#producePartModal').modal('show');
+    });
+
+    // Parça üret
+    $('#producePartBtn').click(function() {
+        var partId = $('#producePartForm input[name="part_id"]').val();
+        var quantity = $('#producePartForm input[name="quantity"]').val();
+        
+        $.ajax({
+            url: '/api/teams/produce_part/',
+            method: 'POST',
+            data: {
+                part: partId,
+                quantity: quantity
+            },
+            success: function() {
+                $('#producePartModal').modal('hide');
+                location.reload();
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

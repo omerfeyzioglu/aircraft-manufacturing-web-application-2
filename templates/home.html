@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Ana Sayfa - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Üretim İstatistikleri -->
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-industry text-primary"></i> Haftalık Üretim
+                </h5>
+                <h2 class="display-4">{{ total_production }}</h2>
+                <p class="text-muted">Son 7 günde üretilen parça sayısı</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-check-circle text-success"></i> Tamamlanan Uçaklar
+                </h5>
+                <h2 class="display-4">{{ completed_aircraft }}</h2>
+                <p class="text-muted">Son 7 günde tamamlanan uçak sayısı</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Düşük Stok Uyarıları -->
+    <div class="col-md-6 col-lg-3 mb-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-exclamation-triangle text-warning"></i> Düşük Stok
+                </h5>
+                <h2 class="display-4">{{ low_stock_parts.count }}</h2>
+                <p class="text-muted">Stok seviyesi düşük parça sayısı</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Günlük Üretim Grafiği -->
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Günlük Üretim Grafiği</h5>
+                <canvas id="productionChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Son Eklenen Uçaklar -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Son Eklenen Uçaklar</h5>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Tip</th>
+                                <th>Durum</th>
+                                <th>Tarih</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for aircraft in recent_aircraft %}
+                            <tr>
+                                <td>{{ aircraft.get_aircraft_type_display }}</td>
+                                <td>
+                                    {% if aircraft.completed_at %}
+                                    <span class="badge bg-success">Tamamlandı</span>
+                                    {% else %}
+                                    <span class="badge bg-info">Üretimde</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ aircraft.created_at|date:"d.m.Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Düşük Stoklu Parçalar -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Düşük Stoklu Parçalar</h5>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Parça</th>
+                                <th>Takım</th>
+                                <th>Stok</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for part in low_stock_parts %}
+                            <tr>
+                                <td>{{ part.name }}</td>
+                                <td>{{ part.get_team_type_display }}</td>
+                                <td>
+                                    <span class="badge bg-danger">{{ part.stock }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Üretim grafiği
+    const ctx = document.getElementById('productionChart').getContext('2d');
+    const productionData = {{ daily_production|safe }};
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: productionData.map(item => new Date(item.created_at__date).toLocaleDateString('tr-TR')),
+            datasets: [{
+                label: 'Günlük Üretim',
+                data: productionData.map(item => item.total),
+                borderColor: '#0d6efd',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %} 

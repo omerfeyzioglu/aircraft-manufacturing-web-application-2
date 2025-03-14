@@ -1,0 +1,378 @@
+{% extends 'production/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Uçaklar</h2>
+    {% if user.team.team_type == 'ASSEMBLY' %}
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAircraftModal">
+        <i class="fas fa-plus"></i> Yeni Uçak
+    </button>
+    {% endif %}
+</div>
+
+<ul class="nav nav-tabs mb-4" id="aircraftTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="production-tab" data-bs-toggle="tab" data-bs-target="#production" type="button">
+            Üretimdeki Uçaklar
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="completed-tab" data-bs-toggle="tab" data-bs-target="#completed" type="button">
+            Tamamlanan Uçaklar
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="aircraftTabContent">
+    <div class="tab-pane fade show active" id="production">
+        <div class="table-responsive">
+            <table class="table table-striped" id="productionTable">
+                <thead>
+                    <tr>
+                        <th>Uçak Tipi</th>
+                        <th>Durum</th>
+                        <th>Başlangıç Tarihi</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- JavaScript ile doldurulacak -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="tab-pane fade" id="completed">
+        <div class="table-responsive">
+            <table class="table table-striped" id="completedTable">
+                <thead>
+                    <tr>
+                        <th>Uçak Tipi</th>
+                        <th>Başlangıç Tarihi</th>
+                        <th>Tamamlanma Tarihi</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- JavaScript ile doldurulacak -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Uçak Ekleme Modal -->
+<div class="modal fade" id="addAircraftModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Uçak Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAircraftForm">
+                    <div class="mb-3">
+                        <label class="form-label">Uçak Tipi</label>
+                        <select class="form-select" name="aircraft_type" required>
+                            <option value="">Seçiniz</option>
+                            {% for type, name in aircraft_types %}
+                            <option value="{{ type }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="saveAircraftBtn">Ekle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Parça Ekleme Modal -->
+<div class="modal fade" id="addPartModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Parça Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addPartForm">
+                    <input type="hidden" name="aircraft_id">
+                    <div class="mb-3">
+                        <label class="form-label">Parça</label>
+                        <select class="form-select" name="part_id" required>
+                            <option value="">Seçiniz</option>
+                            <!-- JavaScript ile doldurulacak -->
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="savePartBtn">Ekle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Parça Detay Modal -->
+<div class="modal fade" id="partsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Uçak Parçaları</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Parça</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody id="partsList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // DataTables initialization
+    var productionTable = $('#productionTable').DataTable({
+        ajax: {
+            url: '/api/aircraft/?status=in_production',
+            dataSrc: ''
+        },
+        columns: [
+            { data: 'aircraft_type' },
+            {
+                data: 'is_complete',
+                render: function(data) {
+                    return data ? 
+                        '<span class="badge bg-success">Hazır</span>' : 
+                        '<span class="badge bg-warning">Eksik Parça</span>';
+                }
+            },
+            { 
+                data: 'created_at',
+                render: function(data) {
+                    return new Date(data).toLocaleString('tr-TR');
+                }
+            },
+            {
+                data: null,
+                render: function(data) {
+                    var buttons = '<button class="btn btn-sm btn-info me-1 view-parts" data-id="' + data.id + '">' +
+                                '<i class="fas fa-search"></i> Parçalar</button>';
+                    
+                    if (data.is_complete) {
+                        buttons += '<button class="btn btn-sm btn-success complete-aircraft" data-id="' + data.id + '">' +
+                                 '<i class="fas fa-check"></i> Tamamla</button>';
+                    } else {
+                        buttons += '<button class="btn btn-sm btn-primary add-part" data-id="' + data.id + '">' +
+                                 '<i class="fas fa-plus"></i> Parça Ekle</button>';
+                    }
+                    
+                    return buttons;
+                }
+            }
+        ],
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json'
+        }
+    });
+
+    var completedTable = $('#completedTable').DataTable({
+        ajax: {
+            url: '/api/aircraft/?status=completed',
+            dataSrc: ''
+        },
+        columns: [
+            { data: 'aircraft_type' },
+            { 
+                data: 'created_at',
+                render: function(data) {
+                    return new Date(data).toLocaleString('tr-TR');
+                }
+            },
+            { 
+                data: 'completed_at',
+                render: function(data) {
+                    return new Date(data).toLocaleString('tr-TR');
+                }
+            },
+            {
+                data: null,
+                render: function(data) {
+                    return '<button class="btn btn-sm btn-info view-parts" data-id="' + data.id + '">' +
+                           '<i class="fas fa-search"></i> Parçalar</button>';
+                }
+            }
+        ],
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json'
+        }
+    });
+
+    // Tab değişikliğinde tabloları yenile
+    $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function() {
+        var targetId = $(this).attr('data-bs-target');
+        if (targetId === '#production') {
+            productionTable.ajax.reload();
+        } else {
+            completedTable.ajax.reload();
+        }
+    });
+
+    // Yeni uçak ekleme
+    $('#saveAircraftBtn').click(function() {
+        var formData = $('#addAircraftForm').serialize();
+        
+        $.ajax({
+            url: '/api/aircraft/',
+            method: 'POST',
+            data: formData,
+            success: function() {
+                $('#addAircraftModal').modal('hide');
+                productionTable.ajax.reload();
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Parça ekleme modalını aç
+    $(document).on('click', '.add-part', function() {
+        var aircraftId = $(this).data('id');
+        $('#addPartForm input[name="aircraft_id"]').val(aircraftId);
+        
+        // Uygun parçaları yükle
+        $.ajax({
+            url: '/api/aircraft/' + aircraftId + '/available_parts/',
+            method: 'GET',
+            success: function(response) {
+                var select = $('#addPartForm select[name="part_id"]');
+                select.empty();
+                select.append('<option value="">Seçiniz</option>');
+                
+                response.parts.forEach(function(part) {
+                    select.append('<option value="' + part.id + '">' + part.name + '</option>');
+                });
+                
+                $('#addPartModal').modal('show');
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Parça ekle
+    $('#savePartBtn').click(function() {
+        var aircraftId = $('#addPartForm input[name="aircraft_id"]').val();
+        var partId = $('#addPartForm select[name="part_id"]').val();
+        
+        $.ajax({
+            url: '/api/aircraft/' + aircraftId + '/add_part/',
+            method: 'POST',
+            data: { part: partId },
+            success: function() {
+                $('#addPartModal').modal('hide');
+                productionTable.ajax.reload();
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Parça detaylarını görüntüle
+    $(document).on('click', '.view-parts', function() {
+        var aircraftId = $(this).data('id');
+        
+        $.ajax({
+            url: '/api/aircraft/' + aircraftId + '/parts_summary/',
+            method: 'GET',
+            success: function(response) {
+                var tbody = $('#partsList');
+                tbody.empty();
+                
+                response.parts.forEach(function(part) {
+                    var status = part.is_available ? 
+                        '<span class="badge bg-success">Mevcut</span>' : 
+                        '<span class="badge bg-danger">Eksik</span>';
+                    
+                    var actions = part.is_available ? 
+                        '<button class="btn btn-sm btn-danger remove-part" data-aircraft="' + aircraftId + '" data-part="' + part.id + '">' +
+                        '<i class="fas fa-times"></i></button>' : '';
+                    
+                    tbody.append(
+                        '<tr>' +
+                        '<td>' + part.name + '</td>' +
+                        '<td>' + status + '</td>' +
+                        '<td>' + actions + '</td>' +
+                        '</tr>'
+                    );
+                });
+                
+                $('#partsModal').modal('show');
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Parça çıkar
+    $(document).on('click', '.remove-part', function() {
+        if (!confirm('Bu parçayı çıkarmak istediğinize emin misiniz?')) {
+            return;
+        }
+
+        var aircraftId = $(this).data('aircraft');
+        var partId = $(this).data('part');
+        
+        $.ajax({
+            url: '/api/aircraft/' + aircraftId + '/remove_part/',
+            method: 'POST',
+            data: { part: partId },
+            success: function() {
+                $('#partsModal').modal('hide');
+                productionTable.ajax.reload();
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Uçak üretimini tamamla
+    $(document).on('click', '.complete-aircraft', function() {
+        var aircraftId = $(this).data('id');
+        
+        $.ajax({
+            url: '/api/aircraft/' + aircraftId + '/complete_production/',
+            method: 'POST',
+            success: function() {
+                productionTable.ajax.reload();
+                completedTable.ajax.reload();
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,234 @@
+[
+    {
+        "model": "production.team",
+        "pk": 1,
+        "fields": {
+            "name": "Kanat Takımı",
+            "team_type": "WING"
+        }
+    },
+    {
+        "model": "production.team",
+        "pk": 2,
+        "fields": {
+            "name": "Gövde Takımı",
+            "team_type": "BODY"
+        }
+    },
+    {
+        "model": "production.team",
+        "pk": 3,
+        "fields": {
+            "name": "Kuyruk Takımı",
+            "team_type": "TAIL"
+        }
+    },
+    {
+        "model": "production.team",
+        "pk": 4,
+        "fields": {
+            "name": "Aviyonik Takımı",
+            "team_type": "AVIONICS"
+        }
+    },
+    {
+        "model": "production.team",
+        "pk": 5,
+        "fields": {
+            "name": "Montaj Takımı",
+            "team_type": "ASSEMBLY"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 1,
+        "fields": {
+            "name": "TB2 Kanadı",
+            "part_type": "WING",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 2,
+        "fields": {
+            "name": "TB2 Gövdesi",
+            "part_type": "BODY",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 3,
+        "fields": {
+            "name": "TB2 Kuyruğu",
+            "part_type": "TAIL",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 4,
+        "fields": {
+            "name": "TB2 Aviyoniği",
+            "part_type": "AVIONICS",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 5,
+        "fields": {
+            "name": "TB3 Kanadı",
+            "part_type": "WING",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 6,
+        "fields": {
+            "name": "TB3 Gövdesi",
+            "part_type": "BODY",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 7,
+        "fields": {
+            "name": "TB3 Kuyruğu",
+            "part_type": "TAIL",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 8,
+        "fields": {
+            "name": "TB3 Aviyoniği",
+            "part_type": "AVIONICS",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 9,
+        "fields": {
+            "name": "AKINCI Kanadı",
+            "part_type": "WING",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 10,
+        "fields": {
+            "name": "AKINCI Gövdesi",
+            "part_type": "BODY",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 11,
+        "fields": {
+            "name": "AKINCI Kuyruğu",
+            "part_type": "TAIL",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 12,
+        "fields": {
+            "name": "AKINCI Aviyoniği",
+            "part_type": "AVIONICS",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 13,
+        "fields": {
+            "name": "KIZILELMA Kanadı",
+            "part_type": "WING",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 14,
+        "fields": {
+            "name": "KIZILELMA Gövdesi",
+            "part_type": "BODY",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 15,
+        "fields": {
+            "name": "KIZILELMA Kuyruğu",
+            "part_type": "TAIL",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    },
+    {
+        "model": "production.part",
+        "pk": 16,
+        "fields": {
+            "name": "KIZILELMA Aviyoniği",
+            "part_type": "AVIONICS",
+            "stock_quantity": 10,
+            "minimum_stock": 5,
+            "created_at": "2024-03-14T00:00:00Z",
+            "updated_at": "2024-03-14T00:00:00Z"
+        }
+    }
+] 

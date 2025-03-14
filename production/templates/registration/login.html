@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giriş Yap - Hava Aracı Üretim Sistemi</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    
+    <style>
+    body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        background-color: #f8f9fa;
+    }
+    .form-signin {
+        width: 100%;
+        max-width: 400px;
+        padding: 15px;
+        margin: auto;
+    }
+    .form-signin .form-floating:focus-within {
+        z-index: 2;
+    }
+    .form-signin input[type="text"] {
+        margin-bottom: -1px;
+        border-bottom-right-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+    .form-signin input[type="password"] {
+        margin-bottom: 10px;
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+    }
+    .logo {
+        height: 60px;
+        margin-bottom: 1.5rem;
+    }
+    </style>
+</head>
+<body>
+    <main class="form-signin text-center">
+        <form method="post">
+            {% csrf_token %}
+            <img class="logo" src="https://www.baykartech.com/assets/images/baykar-logo.png" alt="Baykar Logo">
+            <h1 class="h3 mb-3 fw-normal">Giriş Yap</h1>
+
+            {% if form.errors %}
+            <div class="alert alert-danger">
+                Kullanıcı adı veya şifre hatalı.
+            </div>
+            {% endif %}
+
+            {% if next %}
+            <div class="alert alert-info">
+                Bu sayfaya erişmek için giriş yapmalısınız.
+            </div>
+            {% endif %}
+
+            <div class="form-floating">
+                <input type="text" class="form-control" id="id_username" name="username" placeholder="Kullanıcı Adı" required>
+                <label for="id_username">Kullanıcı Adı</label>
+            </div>
+            <div class="form-floating">
+                <input type="password" class="form-control" id="id_password" name="password" placeholder="Şifre" required>
+                <label for="id_password">Şifre</label>
+            </div>
+
+            <button class="w-100 btn btn-lg btn-primary" type="submit">
+                <i class="fas fa-sign-in-alt"></i> Giriş Yap
+            </button>
+
+            <p class="mt-5 mb-3 text-muted">&copy; 2024 Baykar Teknoloji</p>
+        </form>
+    </main>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

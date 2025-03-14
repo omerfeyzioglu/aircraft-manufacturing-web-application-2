@@ -1,0 +1,290 @@
+{% extends 'production/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Parçalar</h2>
+    {% if user.is_staff %}
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addPartModal">
+        <i class="fas fa-plus"></i> Yeni Parça
+    </button>
+    {% endif %}
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped" id="partsTable">
+        <thead>
+            <tr>
+                <th>Parça Adı</th>
+                <th>Üretici Takım</th>
+                <th>Stok</th>
+                <th>Durum</th>
+                <th>İşlemler</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- JavaScript ile doldurulacak -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Yeni Parça Modal -->
+<div class="modal fade" id="addPartModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Parça Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addPartForm">
+                    <div class="mb-3">
+                        <label class="form-label">Parça Adı</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Üretici Takım</label>
+                        <select class="form-select" name="team_type" required>
+                            <option value="">Seçiniz</option>
+                            {% for type, name in team_types %}
+                            <option value="{{ type }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Başlangıç Stok</label>
+                        <input type="number" class="form-control" name="stock" min="0" value="0" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="savePartBtn">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Parça Üretim Modal -->
+<div class="modal fade" id="producePartModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Parça Üret</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="producePartForm">
+                    <input type="hidden" name="part_id">
+                    <div class="mb-3">
+                        <label class="form-label">Miktar</label>
+                        <input type="number" class="form-control" name="quantity" min="1" value="1" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="producePartBtn">Üret</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Parça Düzenleme Modal -->
+<div class="modal fade" id="editPartModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Parça Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editPartForm">
+                    <input type="hidden" name="part_id">
+                    <div class="mb-3">
+                        <label class="form-label">Parça Adı</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Üretici Takım</label>
+                        <select class="form-select" name="team_type" required>
+                            <option value="">Seçiniz</option>
+                            {% for type, name in team_types %}
+                            <option value="{{ type }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="updatePartBtn">Güncelle</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // DataTable initialization
+    var table = $('#partsTable').DataTable({
+        ajax: {
+            url: '/api/parts/',
+            dataSrc: ''
+        },
+        columns: [
+            { data: 'name' },
+            { 
+                data: 'team_type',
+                render: function(data) {
+                    return {
+                        'BODY': 'Gövde Takımı',
+                        'ELECTRONIC': 'Elektronik Takımı',
+                        'ENGINE': 'Motor Takımı'
+                    }[data] || data;
+                }
+            },
+            { data: 'stock' },
+            {
+                data: 'stock',
+                render: function(data) {
+                    if (data < 5) {
+                        return '<span class="badge bg-danger">Düşük Stok</span>';
+                    }
+                    return '<span class="badge bg-success">Yeterli</span>';
+                }
+            },
+            {
+                data: null,
+                render: function(data) {
+                    var buttons = '';
+                    
+                    if (data.team_type === '{{ user.team.team_type }}') {
+                        buttons += '<button class="btn btn-sm btn-primary me-1 produce-part" data-id="' + data.id + '">' +
+                                 '<i class="fas fa-plus"></i> Üret</button>';
+                    }
+                    
+                    if ('{{ user.is_staff }}' === 'True') {
+                        buttons += '<button class="btn btn-sm btn-warning me-1 edit-part" data-id="' + data.id + '">' +
+                                 '<i class="fas fa-edit"></i></button>' +
+                                 '<button class="btn btn-sm btn-danger delete-part" data-id="' + data.id + '">' +
+                                 '<i class="fas fa-trash"></i></button>';
+                    }
+                    
+                    return buttons;
+                }
+            }
+        ],
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json'
+        }
+    });
+
+    // Yeni parça ekle
+    $('#savePartBtn').click(function() {
+        var formData = $('#addPartForm').serialize();
+        
+        $.ajax({
+            url: '/api/parts/',
+            method: 'POST',
+            data: formData,
+            success: function() {
+                $('#addPartModal').modal('hide');
+                table.ajax.reload();
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Parça üret
+    $('#producePartBtn').click(function() {
+        var partId = $('#producePartForm input[name="part_id"]').val();
+        var quantity = $('#producePartForm input[name="quantity"]').val();
+        
+        $.ajax({
+            url: '/api/teams/produce_part/',
+            method: 'POST',
+            data: {
+                part: partId,
+                quantity: quantity
+            },
+            success: function() {
+                $('#producePartModal').modal('hide');
+                table.ajax.reload();
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Parça düzenleme modalını aç
+    $(document).on('click', '.edit-part', function() {
+        var partId = $(this).data('id');
+        
+        $.ajax({
+            url: '/api/parts/' + partId + '/',
+            method: 'GET',
+            success: function(response) {
+                $('#editPartForm input[name="part_id"]').val(response.id);
+                $('#editPartForm input[name="name"]').val(response.name);
+                $('#editPartForm select[name="team_type"]').val(response.team_type);
+                $('#editPartModal').modal('show');
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Parça güncelle
+    $('#updatePartBtn').click(function() {
+        var partId = $('#editPartForm input[name="part_id"]').val();
+        var formData = $('#editPartForm').serialize();
+        
+        $.ajax({
+            url: '/api/parts/' + partId + '/',
+            method: 'PUT',
+            data: formData,
+            success: function() {
+                $('#editPartModal').modal('hide');
+                table.ajax.reload();
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Parça sil
+    $(document).on('click', '.delete-part', function() {
+        if (!confirm('Bu parçayı silmek istediğinize emin misiniz?')) {
+            return;
+        }
+
+        var partId = $(this).data('id');
+        
+        $.ajax({
+            url: '/api/parts/' + partId + '/',
+            method: 'DELETE',
+            success: function() {
+                table.ajax.reload();
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Parça üretim modalını aç
+    $(document).on('click', '.produce-part', function() {
+        var partId = $(this).data('id');
+        $('#producePartForm input[name="part_id"]').val(partId);
+        $('#producePartModal').modal('show');
+    });
+});
+</script>
+{% endblock %} 

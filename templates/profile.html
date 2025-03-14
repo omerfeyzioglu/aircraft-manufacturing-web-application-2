@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Profil - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Kullanıcı Bilgileri -->
+    <div class="col-md-4 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <img src="https://www.gravatar.com/avatar/{{ user.email|lower|md5 }}?s=150&d=mp" 
+                         class="rounded-circle img-thumbnail" 
+                         alt="{{ user.get_full_name }}" 
+                         width="150">
+                    <h4 class="mt-3">{{ user.get_full_name }}</h4>
+                    <p class="text-muted">{{ user.email }}</p>
+                </div>
+
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <strong>Kullanıcı Adı:</strong> {{ user.username }}
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Son Giriş:</strong> {{ user.last_login|date:"d.m.Y H:i" }}
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Katılım:</strong> {{ user.date_joined|date:"d.m.Y" }}
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Takım Bilgileri -->
+    {% if team %}
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-users text-primary"></i> Takım Bilgileri
+                </h5>
+                <hr>
+                <div class="row">
+                    <div class="col-sm-6">
+                        <p><strong>Takım Adı:</strong> {{ team.name }}</p>
+                        <p><strong>Takım Tipi:</strong> {{ team.get_team_type_display }}</p>
+                        <p><strong>Üye Sayısı:</strong> {{ team.members.count }}</p>
+                    </div>
+                    <div class="col-sm-6">
+                        <p><strong>Toplam Üretim:</strong> {{ total_productions }}</p>
+                        {% if completed_aircraft is not None %}
+                        <p><strong>Tamamlanan Uçak:</strong> {{ completed_aircraft }}</p>
+                        {% endif %}
+                        <p><strong>Kuruluş:</strong> {{ team.created_at|date:"d.m.Y" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Son Üretimler -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="fas fa-history text-primary"></i> Son Üretimler
+                </h5>
+                <hr>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Parça</th>
+                                <th>Miktar</th>
+                                <th>Tarih</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for production in recent_productions %}
+                            <tr>
+                                <td>{{ production.part.name }}</td>
+                                <td>{{ production.quantity }}</td>
+                                <td>{{ production.created_at|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center">Henüz üretim kaydı bulunmuyor.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-md-8">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Henüz bir takıma atanmamışsınız.
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

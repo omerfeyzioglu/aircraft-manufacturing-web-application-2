@@ -1,0 +1,366 @@
+{% extends 'production/base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Takımlar</h2>
+    {% if user.is_staff %}
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTeamModal">
+        <i class="fas fa-plus"></i> Yeni Takım
+    </button>
+    {% endif %}
+</div>
+
+<div class="row">
+    {% for team in teams %}
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">{{ team.name }}</h5>
+                {% if user.is_staff %}
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-primary edit-team" data-id="{{ team.id }}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger delete-team" data-id="{{ team.id }}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <h6>Takım Tipi:</h6>
+                <p>{{ team.get_team_type_display }}</p>
+                
+                <h6>Takım Üyeleri:</h6>
+                <div class="mb-3">
+                    <ul class="list-group">
+                        {% for member in team.members.all %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            {{ member.username }}
+                            {% if user.is_staff %}
+                            <button class="btn btn-sm btn-danger remove-member" data-team="{{ team.id }}" data-user="{{ member.id }}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                            {% endif %}
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item">Henüz üye eklenmemiş</li>
+                        {% endfor %}
+                    </ul>
+                    {% if user.is_staff %}
+                    <button class="btn btn-sm btn-success mt-2 add-member" data-team="{{ team.id }}">
+                        <i class="fas fa-plus"></i> Üye Ekle
+                    </button>
+                    {% endif %}
+                </div>
+
+                <h6>Son Üretimler:</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Parça</th>
+                                <th>Miktar</th>
+                                <th>Tarih</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for production in team.production_set.all|slice:":5" %}
+                            <tr>
+                                <td>{{ production.part.name }}</td>
+                                <td>{{ production.quantity }}</td>
+                                <td>{{ production.produced_at|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3">Henüz üretim yapılmamış</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                {% if team.team_type == 'ASSEMBLY' %}
+                <h6>Montaj Bekleyen Uçaklar:</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Uçak</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for aircraft in team.assembly_aircraft.all %}
+                            <tr>
+                                <td>{{ aircraft.get_aircraft_type_display }}</td>
+                                <td>
+                                    {% if aircraft.is_complete %}
+                                    <span class="badge bg-success">Hazır</span>
+                                    {% else %}
+                                    <span class="badge bg-warning">Eksik Parça</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if aircraft.is_complete %}
+                                    <button class="btn btn-sm btn-success complete-aircraft" data-id="{{ aircraft.id }}">
+                                        <i class="fas fa-check"></i> Tamamla
+                                    </button>
+                                    {% else %}
+                                    <button class="btn btn-sm btn-info view-parts" data-id="{{ aircraft.id }}">
+                                        <i class="fas fa-search"></i> Parçalar
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3">Montaj bekleyen uçak yok</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            Henüz takım bulunmuyor.
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Takım Ekleme/Düzenleme Modal -->
+<div class="modal fade" id="teamModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Takım Ekle/Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="teamForm">
+                    <input type="hidden" name="id">
+                    <div class="mb-3">
+                        <label class="form-label">Takım Adı</label>
+                        <input type="text" class="form-control" name="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Takım Tipi</label>
+                        <select class="form-select" name="team_type" required>
+                            <option value="">Seçiniz</option>
+                            {% for type, name in team_types %}
+                            <option value="{{ type }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="saveTeamBtn">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Üye Ekleme Modal -->
+<div class="modal fade" id="memberModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Üye Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="memberForm">
+                    <input type="hidden" name="team_id">
+                    <div class="mb-3">
+                        <label class="form-label">Kullanıcı</label>
+                        <select class="form-select" name="user_id" required>
+                            <option value="">Seçiniz</option>
+                            {% for user in available_users %}
+                            <option value="{{ user.id }}">{{ user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="saveMemberBtn">Ekle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Parça Detay Modal -->
+<div class="modal fade" id="partsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Uçak Parçaları</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Parça</th>
+                                <th>Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="partsList"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    // Takım ekleme/düzenleme
+    $('#saveTeamBtn').click(function() {
+        var formData = $('#teamForm').serialize();
+        var teamId = $('#teamForm input[name="id"]').val();
+        var method = teamId ? 'PUT' : 'POST';
+        var url = teamId ? '/api/teams/' + teamId + '/' : '/api/teams/';
+        
+        $.ajax({
+            url: url,
+            method: method,
+            data: formData,
+            success: function() {
+                location.reload();
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Takım silme
+    $('.delete-team').click(function() {
+        if (!confirm('Bu takımı silmek istediğinize emin misiniz?')) {
+            return;
+        }
+
+        var teamId = $(this).data('id');
+        
+        $.ajax({
+            url: '/api/teams/' + teamId + '/',
+            method: 'DELETE',
+            success: function() {
+                location.reload();
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Üye ekleme
+    $('.add-member').click(function() {
+        var teamId = $(this).data('team');
+        $('#memberForm input[name="team_id"]').val(teamId);
+        $('#memberModal').modal('show');
+    });
+
+    $('#saveMemberBtn').click(function() {
+        var teamId = $('#memberForm input[name="team_id"]').val();
+        var userId = $('#memberForm select[name="user_id"]').val();
+        
+        $.ajax({
+            url: '/api/teams/' + teamId + '/add_member/',
+            method: 'POST',
+            data: { user: userId },
+            success: function() {
+                location.reload();
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Üye çıkarma
+    $('.remove-member').click(function() {
+        if (!confirm('Bu üyeyi takımdan çıkarmak istediğinize emin misiniz?')) {
+            return;
+        }
+
+        var teamId = $(this).data('team');
+        var userId = $(this).data('user');
+        
+        $.ajax({
+            url: '/api/teams/' + teamId + '/remove_member/',
+            method: 'POST',
+            data: { user: userId },
+            success: function() {
+                location.reload();
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Uçak tamamlama
+    $('.complete-aircraft').click(function() {
+        var aircraftId = $(this).data('id');
+        
+        $.ajax({
+            url: '/api/aircraft/' + aircraftId + '/complete_production/',
+            method: 'POST',
+            success: function() {
+                location.reload();
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+
+    // Parça detayları görüntüleme
+    $('.view-parts').click(function() {
+        var aircraftId = $(this).data('id');
+        
+        $.ajax({
+            url: '/api/aircraft/' + aircraftId + '/parts_summary/',
+            method: 'GET',
+            success: function(response) {
+                var tbody = $('#partsList');
+                tbody.empty();
+                
+                response.parts.forEach(function(part) {
+                    var status = part.is_available ? 
+                        '<span class="badge bg-success">Mevcut</span>' : 
+                        '<span class="badge bg-danger">Eksik</span>';
+                    
+                    tbody.append(
+                        '<tr>' +
+                        '<td>' + part.name + '</td>' +
+                        '<td>' + status + '</td>' +
+                        '</tr>'
+                    );
+                });
+                
+                $('#partsModal').modal('show');
+            },
+            error: function(xhr) {
+                alert('Hata: ' + xhr.responseJSON.detail);
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Uçaklar - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-plane text-primary"></i> Uçak Listesi
+            </h5>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAircraftModal">
+                <i class="fas fa-plus"></i> Yeni Uçak
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover" id="aircraftTable">
+                <thead>
+                    <tr>
+                        <th>Uçak Tipi</th>
+                        <th>Parça Sayısı</th>
+                        <th>Durum</th>
+                        <th>Başlangıç</th>
+                        <th>Tamamlanma</th>
+                        <th>İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for aircraft in aircraft %}
+                    <tr>
+                        <td>{{ aircraft.get_aircraft_type_display }}</td>
+                        <td>{{ aircraft.parts.count }}</td>
+                        <td>
+                            {% if aircraft.completed_at %}
+                            <span class="badge bg-success">Tamamlandı</span>
+                            {% elif aircraft.is_complete %}
+                            <span class="badge bg-warning">Tamamlanmaya Hazır</span>
+                            {% else %}
+                            <span class="badge bg-info">Üretimde</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ aircraft.created_at|date:"d.m.Y" }}</td>
+                        <td>
+                            {% if aircraft.completed_at %}
+                            {{ aircraft.completed_at|date:"d.m.Y H:i" }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-info btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#partsModal"
+                                    data-aircraft-id="{{ aircraft.id }}"
+                                    data-aircraft-type="{{ aircraft.get_aircraft_type_display }}">
+                                <i class="fas fa-cogs"></i>
+                            </button>
+                            {% if not aircraft.completed_at and aircraft.is_complete %}
+                            <button type="button" class="btn btn-success btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#completeModal"
+                                    data-aircraft-id="{{ aircraft.id }}"
+                                    data-aircraft-type="{{ aircraft.get_aircraft_type_display }}">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            {% endif %}
+                            {% if not aircraft.completed_at %}
+                            <button type="button" class="btn btn-danger btn-sm"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#deleteAircraftModal"
+                                    data-aircraft-id="{{ aircraft.id }}"
+                                    data-aircraft-type="{{ aircraft.get_aircraft_type_display }}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Yeni Uçak Modal -->
+<div class="modal fade" id="addAircraftModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Uçak Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addAircraftForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="aircraft_type" class="form-label">Uçak Tipi</label>
+                        <select class="form-select" id="aircraft_type" name="aircraft_type" required>
+                            <option value="">Seçiniz...</option>
+                            {% for type_id, type_name in aircraft_types %}
+                            <option value="{{ type_id }}">{{ type_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Başlat</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Parça Yönetimi Modal -->
+<div class="modal fade" id="partsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Parça Yönetimi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="partsForm" method="post">
+                {% csrf_token %}
+                <input type="hidden" id="parts_aircraft_id" name="aircraft_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="part" class="form-label">Parça</label>
+                        <select class="form-select" id="part" name="part" required>
+                            <option value="">Seçiniz...</option>
+                            {% for part in parts %}
+                            <option value="{{ part.id }}" data-stock="{{ part.stock }}">
+                                {{ part.name }} (Stok: {{ part.stock }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Ekle</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Tamamlama Modal -->
+<div class="modal fade" id="completeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Üretimi Tamamla</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="completeForm" method="post">
+                {% csrf_token %}
+                <input type="hidden" id="complete_aircraft_id" name="aircraft_id">
+                <div class="modal-body">
+                    <p>
+                        <strong><span id="complete_aircraft_type"></span></strong> üretimini tamamlamak istediğinize emin misiniz?
+                    </p>
+                    <p class="text-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Bu işlem geri alınamaz!
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-success">Tamamla</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Silme Modal -->
+<div class="modal fade" id="deleteAircraftModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Uçak Sil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="deleteAircraftForm" method="post">
+                {% csrf_token %}
+                <input type="hidden" id="delete_aircraft_id" name="aircraft_id">
+                <div class="modal-body">
+                    <p>
+                        <strong><span id="delete_aircraft_type"></span></strong> üretimini iptal etmek istediğinize emin misiniz?
+                    </p>
+                    <p class="text-danger">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Bu işlem geri alınamaz!
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-danger">Sil</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // DataTable initialization
+    const table = new DataTable('#aircraftTable', {
+        language: {
+            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json',
+        },
+        order: [[3, 'desc']],
+    });
+
+    // Parts modal
+    const partsModal = document.getElementById('partsModal');
+    partsModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const aircraftId = button.getAttribute('data-aircraft-id');
+        const aircraftType = button.getAttribute('data-aircraft-type');
+
+        partsModal.querySelector('#parts_aircraft_id').value = aircraftId;
+        partsModal.querySelector('.modal-title').textContent = `${aircraftType} - Parça Yönetimi`;
+    });
+
+    // Complete modal
+    const completeModal = document.getElementById('completeModal');
+    completeModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const aircraftId = button.getAttribute('data-aircraft-id');
+        const aircraftType = button.getAttribute('data-aircraft-type');
+
+        completeModal.querySelector('#complete_aircraft_id').value = aircraftId;
+        completeModal.querySelector('#complete_aircraft_type').textContent = aircraftType;
+    });
+
+    // Delete modal
+    const deleteModal = document.getElementById('deleteAircraftModal');
+    deleteModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const aircraftId = button.getAttribute('data-aircraft-id');
+        const aircraftType = button.getAttribute('data-aircraft-type');
+
+        deleteModal.querySelector('#delete_aircraft_id').value = aircraftId;
+        deleteModal.querySelector('#delete_aircraft_type').textContent = aircraftType;
+    });
+});
+</script>
+{% endblock %} 
