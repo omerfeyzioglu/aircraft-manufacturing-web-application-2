@@ -164,6 +164,7 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
 
 5. Tarayıcınızda `http://localhost:8000/` adresine giderek uygulamayı görüntüleyin.
 
+6. Tarayıcınızda `http://localhost:8000/admin` adresine giderek tüm operasyonları admin olarak görüntüleyebilir ardınıdan kullanıcı oluşturabilirsiniz. Çıkış yaptıktan sonra oluşturduğunuz kullanıcı bilgileri ile tekrardan sisteme giriş yapabilirsiniz.
 ## 📖 Kullanım
 
 ### Kullanıcı Rolleri ve İzinler
