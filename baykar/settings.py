@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -56,16 +57,26 @@ TEMPLATES = [
 WSGI_APPLICATION = 'baykar.wsgi.application'
 
 # Database
+# Önce varsayılan veritabanı ayarlarını tanımlayalım
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'aircraft-manifacturing',
+        'NAME': 'baykar',
         'USER': 'postgres',
-        'PASSWORD': '123',
-        'HOST': 'localhost',
+        'PASSWORD': 'postgres',
+        'HOST': 'db',  # Docker service name
         'PORT': '5432',
     }
 }
+
+# Eğer DATABASE_URL çevresel değişkeni varsa, onu kullan
+DATABASE_URL = os.environ.get('DATABASE_URL')
+if DATABASE_URL:
+    DATABASES['default'] = dj_database_url.config(
+        default=DATABASE_URL,
+        conn_max_age=600,
+        conn_health_checks=True,
+    )
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
