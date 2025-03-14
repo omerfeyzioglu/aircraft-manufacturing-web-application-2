@@ -57,6 +57,5 @@ Bu proje MIT lisansı altında lisanslanmıştır.
 
 ## İletişim
 
-Proje Yöneticisi - [@kullanici](https://github.com/kullanici)
+Proje Yöneticisi - [@kullanici](https://github.com/omerfeyzioglu)
 
-Proje Linki: [https://github.com/kullanici/hava-araci-uretim](https://github.com/kullanici/hava-araci-uretim) 
