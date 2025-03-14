@@ -9,8 +9,8 @@ from .models import Part, Production, Aircraft, AircraftPart, Team
 def check_low_stock(sender, instance, **kwargs):
     """Parça stoku düşük olduğunda ilgili takıma bildirim gönder"""
     if instance.is_low_stock:
-        # Parçayı üreten takımın üyelerine e-posta gönder
-        team = instance.team_set.first()
+        # Parçayı üreten takımı bul
+        team = Team.objects.filter(team_type=instance.team_type).first()
         if team:
             subject = f'Düşük Stok Uyarısı: {instance.name}'
             message = f'''
@@ -77,7 +77,7 @@ def check_aircraft_completion(sender, instance, created, **kwargs):
     """Uçağa parça eklendiğinde tamamlanma durumunu kontrol et"""
     if created and instance.aircraft.is_complete:
         # Montaj takımına bildirim gönder
-        assembly_team = instance.aircraft.team_set.filter(team_type='ASSEMBLY').first()
+        assembly_team = Team.objects.filter(team_type='ASSEMBLY').first()
         if assembly_team:
             subject = f'Uçak Montaja Hazır: {instance.aircraft.get_aircraft_type_display()}'
             message = f'''

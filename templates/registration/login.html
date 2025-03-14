@@ -4,76 +4,100 @@
 {% block title %}Giriş Yap - {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6 col-lg-4">
-        <div class="card shadow">
-            <div class="card-body">
-                <div class="text-center mb-4">
-                    <img src="https://www.baykartech.com/assets/images/baykar-logo.png" 
-                         alt="Baykar Logo" 
-                         class="img-fluid mb-3" 
-                         style="max-height: 60px;">
-                    <h4 class="card-title">Giriş Yap</h4>
+<!-- Login Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-4">Üretim Sistemine Giriş</h1>
+                <p class="lead mb-4">Türkiye'nin milli ve özgün hava araçları üretim süreçlerini yönetin.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container mt-n5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow border-0">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <img src="https://cdn.baykartech.com/media/images/contents/Baykar-Logo.svg" 
+                             alt="Baykar Logo" 
+                             class="img-fluid mb-4" 
+                             style="max-height: 60px;">
+                        <h4 class="card-title">Giriş Yap</h4>
+                        <p class="text-muted">Hesabınıza erişmek için giriş yapın</p>
+                    </div>
+
+                    <form method="post" action="{% url 'login' %}" class="fade-in">
+                        {% csrf_token %}
+                        
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            Kullanıcı adı veya şifre hatalı. Lütfen tekrar deneyiniz.
+                        </div>
+                        {% endif %}
+
+                        {% if next %}
+                            <input type="hidden" name="next" value="{{ next }}">
+                        {% endif %}
+
+                        <div class="mb-4">
+                            <label for="id_username" class="form-label">Kullanıcı Adı</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">
+                                    <i class="fas fa-user text-primary"></i>
+                                </span>
+                                <input type="text" 
+                                       name="username" 
+                                       id="id_username" 
+                                       class="form-control form-control-lg {% if form.username.errors %}is-invalid{% endif %}"
+                                       placeholder="Kullanıcı adınızı girin"
+                                       required 
+                                       autofocus>
+                            </div>
+                            {% if form.username.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.username.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="id_password" class="form-label">Şifre</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">
+                                    <i class="fas fa-lock text-primary"></i>
+                                </span>
+                                <input type="password" 
+                                       name="password" 
+                                       id="id_password" 
+                                       class="form-control form-control-lg {% if form.password.errors %}is-invalid{% endif %}"
+                                       placeholder="Şifrenizi girin"
+                                       required>
+                            </div>
+                            {% if form.password.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.password.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-sign-in-alt me-2"></i>Giriş Yap
+                            </button>
+                        </div>
+                    </form>
                 </div>
-
-                <form method="post" action="{% url 'login' %}">
-                    {% csrf_token %}
-                    
-                    {% if form.errors %}
-                    <div class="alert alert-danger">
-                        Kullanıcı adı veya şifre hatalı. Lütfen tekrar deneyiniz.
-                    </div>
-                    {% endif %}
-
-                    {% if next %}
-                        <input type="hidden" name="next" value="{{ next }}">
-                    {% endif %}
-
-                    <div class="mb-3">
-                        <label for="id_username" class="form-label">Kullanıcı Adı</label>
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="fas fa-user"></i>
-                            </span>
-                            <input type="text" 
-                                   name="username" 
-                                   id="id_username" 
-                                   class="form-control {% if form.username.errors %}is-invalid{% endif %}"
-                                   required 
-                                   autofocus>
-                        </div>
-                        {% if form.username.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.username.errors|join:", " }}
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="id_password" class="form-label">Şifre</label>
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="fas fa-lock"></i>
-                            </span>
-                            <input type="password" 
-                                   name="password" 
-                                   id="id_password" 
-                                   class="form-control {% if form.password.errors %}is-invalid{% endif %}"
-                                   required>
-                        </div>
-                        {% if form.password.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.password.errors|join:", " }}
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-sign-in-alt me-2"></i>Giriş Yap
-                        </button>
-                    </div>
-                </form>
+            </div>
+            
+            <div class="text-center mt-4">
+                <p class="text-muted">
+                    Giriş yapamıyor musunuz? Lütfen sistem yöneticisi ile iletişime geçin.
+                </p>
             </div>
         </div>
     </div>

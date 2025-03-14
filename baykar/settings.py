@@ -20,7 +20,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'production.apps.ProductionConfig',
+    'rest_framework',
+    'drf_spectacular',
+    'production',
 ]
 
 MIDDLEWARE = [
@@ -56,8 +58,12 @@ WSGI_APPLICATION = 'baykar.wsgi.application'
 # Database
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'aircraft-manifacturing',
+        'USER': 'postgres',
+        'PASSWORD': '123',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
@@ -100,4 +106,19 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Authentication settings
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'production:home'
-LOGOUT_REDIRECT_URL = 'login' 
+LOGOUT_REDIRECT_URL = 'login'
+
+# DRF Settings
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 25,
+}
+
+# Spectacular Settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Hava Aracı Üretim API',
+    'DESCRIPTION': 'Hava araçları üretim takip sistemi API dokümantasyonu',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+} 

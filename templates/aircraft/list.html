@@ -4,82 +4,132 @@
 {% block title %}Uçaklar - {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="card-title mb-0">
-                <i class="fas fa-plane text-primary"></i> Uçak Listesi
-            </h5>
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-4">Uçak Yönetimi</h1>
+                <p class="lead mb-4">Üretim sürecindeki ve tamamlanan uçakları görüntüleyin ve yönetin.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="container mt-n5">
+    <div class="card shadow border-0">
+        <div class="card-header d-flex justify-content-between align-items-center bg-white py-3">
+            <h5 class="mb-0 fw-bold">Uçak Listesi</h5>
+            {% if user_team and user_team.team_type == 'ASSEMBLY' %}
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addAircraftModal">
                 <i class="fas fa-plus"></i> Yeni Uçak
             </button>
+            {% endif %}
         </div>
-
-        <div class="table-responsive">
-            <table class="table table-hover" id="aircraftTable">
-                <thead>
-                    <tr>
-                        <th>Uçak Tipi</th>
-                        <th>Parça Sayısı</th>
-                        <th>Durum</th>
-                        <th>Başlangıç</th>
-                        <th>Tamamlanma</th>
-                        <th>İşlemler</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for aircraft in aircraft %}
-                    <tr>
-                        <td>{{ aircraft.get_aircraft_type_display }}</td>
-                        <td>{{ aircraft.parts.count }}</td>
-                        <td>
-                            {% if aircraft.completed_at %}
-                            <span class="badge bg-success">Tamamlandı</span>
-                            {% elif aircraft.is_complete %}
-                            <span class="badge bg-warning">Tamamlanmaya Hazır</span>
-                            {% else %}
-                            <span class="badge bg-info">Üretimde</span>
-                            {% endif %}
-                        </td>
-                        <td>{{ aircraft.created_at|date:"d.m.Y" }}</td>
-                        <td>
-                            {% if aircraft.completed_at %}
-                            {{ aircraft.completed_at|date:"d.m.Y H:i" }}
-                            {% else %}
-                            -
-                            {% endif %}
-                        </td>
-                        <td>
-                            <button type="button" class="btn btn-info btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#partsModal"
-                                    data-aircraft-id="{{ aircraft.id }}"
-                                    data-aircraft-type="{{ aircraft.get_aircraft_type_display }}">
-                                <i class="fas fa-cogs"></i>
-                            </button>
-                            {% if not aircraft.completed_at and aircraft.is_complete %}
-                            <button type="button" class="btn btn-success btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#completeModal"
-                                    data-aircraft-id="{{ aircraft.id }}"
-                                    data-aircraft-type="{{ aircraft.get_aircraft_type_display }}">
-                                <i class="fas fa-check"></i>
-                            </button>
-                            {% endif %}
-                            {% if not aircraft.completed_at %}
-                            <button type="button" class="btn btn-danger btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#deleteAircraftModal"
-                                    data-aircraft-id="{{ aircraft.id }}"
-                                    data-aircraft-type="{{ aircraft.get_aircraft_type_display }}">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="card-body">
+            <!-- Filtreler -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <label class="form-label">Uçak Tipi</label>
+                    <select class="form-select" id="aircraftTypeFilter">
+                        <option value="">Tüm Uçak Tipleri</option>
+                        {% for type_code, type_name in aircraft_types %}
+                        <option value="{{ type_code }}">{{ type_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <label class="form-label">Durum</label>
+                    <select class="form-select" id="statusFilter">
+                        <option value="">Tüm Durumlar</option>
+                        <option value="complete">Tamamlandı</option>
+                        <option value="incomplete">Devam Ediyor</option>
+                    </select>
+                </div>
+                {% if not user_team or user_team.team_type != 'ASSEMBLY' %}
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <label class="form-label">Montaj Takımı</label>
+                    <select class="form-select" id="assemblyTeamFilter">
+                        <option value="">Tüm Montaj Takımları</option>
+                        {% for team in assembly_teams %}
+                        <option value="{{ team.id }}">{{ team.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+                <div class="col-md-3 mb-3 mb-md-0">
+                    <label class="form-label">&nbsp;</label>
+                    <button class="btn btn-primary w-100" id="applyFilters">
+                        <i class="fas fa-filter"></i> Filtrele
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Uçak Listesi -->
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="aircraftTable">
+                    <thead>
+                        <tr>
+                            <th>Uçak Tipi</th>
+                            <th>Montaj Takımı</th>
+                            <th>Durum</th>
+                            <th>Başlangıç Tarihi</th>
+                            <th>Tamamlanma Tarihi</th>
+                            <th>Tamamlanma Oranı</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for aircraft in aircraft %}
+                        <tr>
+                            <td>{{ aircraft.get_aircraft_type_display }}</td>
+                            <td>{{ aircraft.assembly_team.name|default:"-" }}</td>
+                            <td>
+                                {% if aircraft.completed_at %}
+                                <span class="badge bg-success">Tamamlandı</span>
+                                {% else %}
+                                <span class="badge bg-warning">Devam Ediyor</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ aircraft.created_at|date:"d.m.Y" }}</td>
+                            <td>{{ aircraft.completed_at|date:"d.m.Y"|default:"-" }}</td>
+                            <td>
+                                <div class="progress">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                         role="progressbar" 
+                                         style="width: {{ aircraft.completion_percentage }}%" 
+                                         aria-valuenow="{{ aircraft.completion_percentage }}" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100">
+                                        {{ aircraft.completion_percentage }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-info btn-sm view-parts" data-id="{{ aircraft.id }}" data-type="{{ aircraft.get_aircraft_type_display }}">
+                                        <i class="fas fa-list"></i> Parçaları Gör
+                                    </button>
+                                    {% if user_team and user_team.team_type == 'ASSEMBLY' %}
+                                    <button type="button" class="btn btn-primary btn-sm add-part" data-id="{{ aircraft.id }}" data-type="{{ aircraft.get_aircraft_type_display }}">
+                                        <i class="fas fa-plus"></i> Parça Ekle
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-secondary btn-sm view-history" data-id="{{ aircraft.id }}" data-type="{{ aircraft.get_aircraft_type_display }}">
+                                        <i class="fas fa-history"></i> Üretim Geçmişi
+                                    </button>
+                                    {% if user_team and user_team.team_type == 'ASSEMBLY' %}
+                                    <button type="button" class="btn btn-danger btn-sm delete-aircraft" data-id="{{ aircraft.id }}">
+                                        <i class="fas fa-trash"></i> Sil
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -89,18 +139,18 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Yeni Uçak Ekle</h5>
+                <h5 class="modal-title">Yeni Uçak</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="addAircraftForm" method="post">
+            <form id="addAircraftForm">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="aircraft_type" class="form-label">Uçak Tipi</label>
-                        <select class="form-select" id="aircraft_type" name="aircraft_type" required>
+                        <label class="form-label">Uçak Tipi</label>
+                        <select class="form-select" name="aircraft_type" required>
                             <option value="">Seçiniz...</option>
-                            {% for type_id, type_name in aircraft_types %}
-                            <option value="{{ type_id }}">{{ type_name }}</option>
+                            {% for type_code, type_name in aircraft_types %}
+                            <option value="{{ type_code }}">{{ type_name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -114,69 +164,123 @@
     </div>
 </div>
 
-<!-- Parça Yönetimi Modal -->
-<div class="modal fade" id="partsModal" tabindex="-1">
-    <div class="modal-dialog">
+<!-- Parça Ekleme Modal -->
+<div class="modal fade" id="addPartModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Parça Yönetimi</h5>
+                <h5 class="modal-title">Parça Ekle</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="partsForm" method="post">
-                {% csrf_token %}
-                <input type="hidden" id="parts_aircraft_id" name="aircraft_id">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="part" class="form-label">Parça</label>
-                        <select class="form-select" id="part" name="part" required>
-                            <option value="">Seçiniz...</option>
-                            {% for part in parts %}
-                            <option value="{{ part.id }}" data-stock="{{ part.stock }}">
-                                {{ part.name }} (Stok: {{ part.stock }})
-                            </option>
-                            {% endfor %}
-                        </select>
+            <div class="modal-body">
+                <form id="addPartForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="aircraft" id="aircraftId">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <h6>Parça Durumu</h6>
+                            <div id="partStatusContainer" class="mb-3">
+                                <!-- Part status will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Eklenecek Parça</label>
+                                <select class="form-select" name="part" id="partSelect" required>
+                                    <option value="">Seçiniz</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Parça Tipi</label>
+                                <select class="form-select" id="partTypeFilter">
+                                    <option value="">Tümü</option>
+                                    {% for type_code, type_name in team_types %}
+                                    {% if type_code != 'ASSEMBLY' %}
+                                    <option value="{{ type_code }}">{{ type_name }}</option>
+                                    {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" id="savePartBtn">Ekle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Parça Listesi Modal -->
+<div class="modal fade" id="partsListModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Parça Listesi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6 class="mb-3" id="aircraftInfo"></h6>
+                
+                <!-- Tamamlanma Durumu -->
+                <div class="mb-4">
+                    <h6>Tamamlanma Durumu</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Takım</th>
+                                    <th>Gerekli</th>
+                                    <th>Mevcut</th>
+                                    <th>Kalan</th>
+                                    <th>Tamamlanma</th>
+                                </tr>
+                            </thead>
+                            <tbody id="partsTable">
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="submit" class="btn btn-primary">Ekle</button>
+                
+                <!-- Eklenen Parçalar -->
+                <div class="mb-3">
+                    <h6>Eklenen Parçalar</h6>
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="addedPartsTable">
+                            <thead>
+                                <tr>
+                                    <th>Parça Adı</th>
+                                    <th>Parça Tipi</th>
+                                    <th>Eklenme Tarihi</th>
+                                    <th>Ekleyen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Tamamlama Modal -->
-<div class="modal fade" id="completeModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Üretimi Tamamla</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                
+                <div id="completedMessage" class="alert alert-success mt-3 d-none">
+                    <i class="fas fa-check-circle"></i> Bu uçak için tüm parçalar tamamlandı!
+                </div>
+                <div id="missingMessage" class="alert alert-warning mt-3 d-none">
+                    <i class="fas fa-exclamation-triangle"></i> Bu uçak için eksik parçalar var!
+                </div>
             </div>
-            <form id="completeForm" method="post">
-                {% csrf_token %}
-                <input type="hidden" id="complete_aircraft_id" name="aircraft_id">
-                <div class="modal-body">
-                    <p>
-                        <strong><span id="complete_aircraft_type"></span></strong> üretimini tamamlamak istediğinize emin misiniz?
-                    </p>
-                    <p class="text-warning">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Bu işlem geri alınamaz!
-                    </p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="submit" class="btn btn-success">Tamamla</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
 
-<!-- Silme Modal -->
+<!-- Uçak Silme Modal -->
 <div class="modal fade" id="deleteAircraftModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -184,23 +288,53 @@
                 <h5 class="modal-title">Uçak Sil</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="deleteAircraftForm" method="post">
-                {% csrf_token %}
-                <input type="hidden" id="delete_aircraft_id" name="aircraft_id">
-                <div class="modal-body">
-                    <p>
-                        <strong><span id="delete_aircraft_type"></span></strong> üretimini iptal etmek istediğinize emin misiniz?
-                    </p>
-                    <p class="text-danger">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Bu işlem geri alınamaz!
-                    </p>
+            <div class="modal-body">
+                <p>Bu uçağı silmek istediğinize emin misiniz?</p>
+                <p><strong id="deleteAircraftType"></strong></p>
+                <p class="text-danger">Bu işlem geri alınamaz ve tüm parçalar stoğa geri döndürülecektir!</p>
+                <form id="deleteAircraftForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="aircraft_id" id="deleteAircraftId">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteAircraftBtn">Sil</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Üretim Geçmişi Modal -->
+<div class="modal fade" id="productionHistoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Üretim Geçmişi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <h6 class="mb-3" id="historyAircraftInfo"></h6>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="historyTable">
+                        <thead>
+                            <tr>
+                                <th>Parça Adı</th>
+                                <th>Takım</th>
+                                <th>Eklenme Tarihi</th>
+                                <th>Ekleyen</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="submit" class="btn btn-danger">Sil</button>
+                
+                <div id="noHistoryMessage" class="alert alert-info mt-3 d-none">
+                    <i class="fas fa-info-circle"></i> Bu uçak için henüz üretim geçmişi bulunmamaktadır.
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
@@ -208,46 +342,417 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+$(document).ready(function() {
     // DataTable initialization
-    const table = new DataTable('#aircraftTable', {
+    var table = $('#aircraftTable').DataTable({
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json',
+            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json'
         },
         order: [[3, 'desc']],
+        pageLength: 25
     });
 
-    // Parts modal
-    const partsModal = document.getElementById('partsModal');
-    partsModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const aircraftId = button.getAttribute('data-aircraft-id');
-        const aircraftType = button.getAttribute('data-aircraft-type');
-
-        partsModal.querySelector('#parts_aircraft_id').value = aircraftId;
-        partsModal.querySelector('.modal-title').textContent = `${aircraftType} - Parça Yönetimi`;
+    // Filter handling
+    $('#applyFilters').click(function() {
+        var params = new URLSearchParams(window.location.search);
+        
+        var aircraftType = $('#aircraftTypeFilter').val();
+        var status = $('#statusFilter').val();
+        var assemblyTeam = $('#assemblyTeamFilter').val();
+        
+        if (aircraftType) params.set('aircraft_type', aircraftType);
+        else params.delete('aircraft_type');
+        
+        if (status) params.set('status', status);
+        else params.delete('status');
+        
+        if (assemblyTeam) params.set('assembly_team', assemblyTeam);
+        else params.delete('assembly_team');
+        
+        window.location.search = params.toString();
     });
 
-    // Complete modal
-    const completeModal = document.getElementById('completeModal');
-    completeModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const aircraftId = button.getAttribute('data-aircraft-id');
-        const aircraftType = button.getAttribute('data-aircraft-type');
+    // Set current filters
+    var params = new URLSearchParams(window.location.search);
+    $('#aircraftTypeFilter').val(params.get('aircraft_type') || '');
+    $('#statusFilter').val(params.get('status') || '');
+    $('#assemblyTeamFilter').val(params.get('assembly_team') || '');
 
-        completeModal.querySelector('#complete_aircraft_id').value = aircraftId;
-        completeModal.querySelector('#complete_aircraft_type').textContent = aircraftType;
+    // Add aircraft form handling
+    $('#addAircraftForm').submit(function(e) {
+        e.preventDefault();
+        $.ajax({
+            url: '{% url "api:aircraft-list" %}',
+            type: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                $('#addAircraftModal').modal('hide');
+                toastr.success('Uçak üretimi başlatıldı');
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1000);
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON.detail || 'Bir hata oluştu');
+            }
+        });
     });
 
-    // Delete modal
-    const deleteModal = document.getElementById('deleteAircraftModal');
-    deleteModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const aircraftId = button.getAttribute('data-aircraft-id');
-        const aircraftType = button.getAttribute('data-aircraft-type');
+    // View parts handling
+    $('.view-parts').click(function() {
+        var aircraftId = $(this).data('id');
+        var aircraftType = $(this).data('type');
+        
+        $('#aircraftInfo').text(aircraftType + ' için Parça Bilgileri');
+        
+        // Load part status
+        $.ajax({
+            url: '{% url "production:get_required_parts" 0 %}'.replace('0', aircraftId),
+            type: 'GET',
+            success: function(response) {
+                // Update parts summary table
+                var tbody = $('#partsTable').empty();
+                var allComplete = true;
+                
+                for (var teamType in response.required_parts) {
+                    var data = response.required_parts[teamType];
+                    var teamName = getTeamTypeName(teamType);
+                    var percentage = Math.min(100, Math.round((data.current / data.required) * 100));
+                    
+                    var row = $('<tr>');
+                    row.append($('<td>').text(teamName));
+                    row.append($('<td>').text(data.required));
+                    row.append($('<td>').text(data.current));
+                    
+                    var remaining = $('<td>');
+                    if (data.current < data.required) {
+                        remaining.append($('<span>').addClass('badge bg-warning').text(data.required - data.current));
+                        allComplete = false;
+                    } else {
+                        remaining.append($('<span>').addClass('badge bg-success').text('Tamam'));
+                    }
+                    row.append(remaining);
+                    
+                    // Add completion percentage
+                    var progressBar = $('<div>').addClass('progress');
+                    var progressBarInner = $('<div>')
+                        .addClass('progress-bar')
+                        .css('width', percentage + '%')
+                        .attr('aria-valuenow', percentage)
+                        .attr('aria-valuemin', 0)
+                        .attr('aria-valuemax', 100)
+                        .text(percentage + '%');
+                    
+                    if (percentage < 100) {
+                        progressBarInner.addClass('bg-warning');
+                    } else {
+                        progressBarInner.addClass('bg-success');
+                    }
+                    
+                    progressBar.append(progressBarInner);
+                    row.append($('<td>').append(progressBar));
+                    
+                    tbody.append(row);
+                }
+                
+                // Load added parts details
+                loadAircraftParts(aircraftId);
+                
+                // Show completion message
+                if (allComplete) {
+                    $('#completedMessage').removeClass('d-none');
+                    $('#missingMessage').addClass('d-none');
+                } else {
+                    $('#completedMessage').addClass('d-none');
+                    $('#missingMessage').removeClass('d-none');
+                }
+                
+                $('#partsListModal').modal('show');
+            },
+            error: function(xhr) {
+                toastr.error('Parça listesi yüklenemedi');
+            }
+        });
+    });
+    
+    // Load aircraft parts details
+    function loadAircraftParts(aircraftId) {
+        $.ajax({
+            url: '/api/aircraft/' + aircraftId + '/parts-summary/',
+            method: 'GET',
+            success: function(response) {
+                var tbody = $('#addedPartsTable tbody').empty();
+                
+                // Collect all parts from all team types
+                var allParts = [];
+                for (var teamType in response.required_parts) {
+                    var parts = response.required_parts[teamType].parts;
+                    parts.forEach(function(part) {
+                        part.team_type = teamType;
+                        allParts.push(part);
+                    });
+                }
+                
+                if (allParts.length === 0) {
+                    tbody.append(
+                        $('<tr>').append(
+                            $('<td colspan="4" class="text-center">').text('Henüz parça eklenmemiş')
+                        )
+                    );
+                } else {
+                    // Sort parts by added date (if available)
+                    allParts.sort(function(a, b) {
+                        return new Date(b.added_at || 0) - new Date(a.added_at || 0);
+                    });
+                    
+                    allParts.forEach(function(part) {
+                        var row = $('<tr>');
+                        row.append($('<td>').text(part.name));
+                        row.append($('<td>').text(getTeamTypeName(part.team_type)));
+                        row.append($('<td>').text(part.added_at ? new Date(part.added_at).toLocaleString('tr-TR') : '-'));
+                        row.append($('<td>').text(part.added_by || '-'));
+                        tbody.append(row);
+                    });
+                }
+            },
+            error: function(xhr) {
+                toastr.error('Parça detayları yüklenemedi');
+            }
+        });
+    }
 
-        deleteModal.querySelector('#delete_aircraft_id').value = aircraftId;
-        deleteModal.querySelector('#delete_aircraft_type').textContent = aircraftType;
+    // Add part handling
+    $('.add-part').click(function() {
+        var aircraftId = $(this).data('id');
+        var aircraftType = $(this).data('type');
+        
+        $('#aircraftId').val(aircraftId);
+        
+        // Load part status and available parts
+        loadPartStatus(aircraftId);
+    });
+    
+    // Filter parts by type
+    $('#partTypeFilter').change(function() {
+        var selectedType = $(this).val();
+        var aircraftId = $('#aircraftId').val();
+        
+        if (aircraftId) {
+            loadAvailableParts(aircraftId, selectedType);
+        }
+    });
+    
+    // Load part status for an aircraft
+    function loadPartStatus(aircraftId) {
+        $.ajax({
+            url: '{% url "production:get_required_parts" 0 %}'.replace('0', aircraftId),
+            method: 'GET',
+            success: function(response) {
+                // Display part status
+                var statusHtml = '<div class="row">';
+                
+                for (var teamType in response.required_parts) {
+                    var data = response.required_parts[teamType];
+                    var teamName = getTeamTypeName(teamType);
+                    var percentage = (data.current / data.required) * 100;
+                    
+                    statusHtml += '<div class="col-md-6 mb-2">' +
+                                '<div class="d-flex justify-content-between">' +
+                                '<span>' + teamName + '</span>' +
+                                '<span>' + data.current + ' / ' + data.required + '</span>' +
+                                '</div>' +
+                                '<div class="progress">' +
+                                '<div class="progress-bar ' + getProgressBarClass(percentage) + '" ' +
+                                'role="progressbar" style="width: ' + percentage + '%;" ' +
+                                'aria-valuenow="' + percentage + '" aria-valuemin="0" aria-valuemax="100">' +
+                                '</div>' +
+                                '</div>' +
+                                '</div>';
+                }
+                
+                statusHtml += '</div>';
+                $('#partStatusContainer').html(statusHtml);
+                
+                // Load available parts
+                var selectedType = $('#partTypeFilter').val();
+                loadAvailableParts(aircraftId, selectedType);
+                
+                // Show modal
+                $('#addPartModal').modal('show');
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON.error || 'Bir hata oluştu');
+            }
+        });
+    }
+    
+    // Load available parts for an aircraft
+    function loadAvailableParts(aircraftId, teamType) {
+        $.ajax({
+            url: '/api/aircraft/' + aircraftId + '/available-parts/',
+            method: 'GET',
+            success: function(response) {
+                var select = $('#partSelect');
+                select.empty();
+                select.append('<option value="">Seçiniz</option>');
+                
+                var parts = response.parts;
+                if (teamType) {
+                    parts = parts.filter(function(part) {
+                        return part.team_type === teamType;
+                    });
+                }
+                
+                parts.forEach(function(part) {
+                    select.append('<option value="' + part.id + '">' + part.name + ' (Stok: ' + part.stock + ')</option>');
+                });
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON.detail || 'Bir hata oluştu');
+            }
+        });
+    }
+    
+    // Get team type name
+    function getTeamTypeName(teamType) {
+        var teamTypes = {
+            'WING': 'Kanat',
+            'BODY': 'Gövde',
+            'TAIL': 'Kuyruk',
+            'AVIONICS': 'Aviyonik'
+        };
+        
+        return teamTypes[teamType] || teamType;
+    }
+    
+    // Get progress bar class based on percentage
+    function getProgressBarClass(percentage) {
+        if (percentage < 30) return 'bg-danger';
+        if (percentage < 70) return 'bg-warning';
+        return 'bg-success';
+    }
+
+    // Parça ekle
+    $('#savePartBtn').click(function() {
+        var aircraftId = $('#aircraftId').val();
+        var partId = $('#partSelect').val();
+        
+        if (!partId) {
+            toastr.error('Lütfen bir parça seçin');
+            return;
+        }
+        
+        $.ajax({
+            url: '{% url "production:add_aircraft_part" %}',
+            type: 'POST',
+            data: {
+                'aircraft': aircraftId,
+                'part': partId,
+                'csrfmiddlewaretoken': $('input[name="csrfmiddlewaretoken"]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    $('#addPartModal').modal('hide');
+                    toastr.success(response.message);
+                    
+                    // If aircraft is complete, reload the page
+                    if (response.is_complete) {
+                        setTimeout(function() {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        // Otherwise, update the part status
+                        loadPartStatus(aircraftId);
+                    }
+                } else {
+                    toastr.error(response.error);
+                }
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON.error || 'Bir hata oluştu');
+            }
+        });
+    });
+
+    // Delete aircraft handling
+    $('.delete-aircraft').click(function() {
+        var aircraftId = $(this).data('id');
+        var aircraftType = $(this).data('type');
+        
+        $('#deleteAircraftId').val(aircraftId);
+        $('#deleteAircraftType').text(aircraftType);
+        
+        $('#deleteAircraftModal').modal('show');
+    });
+
+    $('#confirmDeleteAircraftBtn').click(function() {
+        var aircraftId = $('#deleteAircraftId').val();
+        
+        $.ajax({
+            url: '{% url "api:aircraft-detail" 0 %}'.replace('0', aircraftId),
+            type: 'DELETE',
+            success: function(response) {
+                $('#deleteAircraftModal').modal('hide');
+                toastr.success('Uçak başarıyla silindi');
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1000);
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON.detail || 'Bir hata oluştu');
+            }
+        });
+    });
+
+    // View Production History
+    $(document).on('click', '.view-history', function() {
+        var aircraftId = $(this).data('id');
+        var aircraftType = $(this).data('type');
+        
+        $('#historyAircraftInfo').text(aircraftType + ' - ID: ' + aircraftId);
+        
+        // Clear previous data
+        $('#historyTable tbody').empty();
+        $('#noHistoryMessage').addClass('d-none');
+        
+        // Load production history
+        $.ajax({
+            url: '/api/aircraft/' + aircraftId + '/production-history/',
+            type: 'GET',
+            success: function(data) {
+                if (data.history.length === 0) {
+                    $('#noHistoryMessage').removeClass('d-none');
+                } else {
+                    var historyTable = $('#historyTable').DataTable();
+                    if (historyTable) {
+                        historyTable.destroy();
+                    }
+                    
+                    $.each(data.history, function(index, item) {
+                        $('#historyTable tbody').append(
+                            '<tr>' +
+                            '<td>' + item.part_name + '</td>' +
+                            '<td>' + item.team_name + '</td>' +
+                            '<td>' + item.added_at + '</td>' +
+                            '<td>' + item.added_by + '</td>' +
+                            '</tr>'
+                        );
+                    });
+                    
+                    $('#historyTable').DataTable({
+                        language: {
+                            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json'
+                        },
+                        order: [[2, 'desc']]
+                    });
+                }
+                
+                $('#productionHistoryModal').modal('show');
+            },
+            error: function(xhr) {
+                alert('Üretim geçmişi yüklenirken bir hata oluştu: ' + xhr.responseText);
+            }
+        });
     });
 });
 </script>

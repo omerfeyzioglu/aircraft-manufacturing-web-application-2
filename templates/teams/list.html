@@ -4,65 +4,90 @@
 {% block title %}Takımlar - {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="card-title mb-0">
-                <i class="fas fa-users text-primary"></i> Takım Listesi
-            </h5>
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Takım Listesi</h5>
+            {% if perms.production.add_team %}
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTeamModal">
                 <i class="fas fa-plus"></i> Yeni Takım
             </button>
+            {% endif %}
         </div>
+        <div class="card-body">
+            <!-- Filtreler -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <select class="form-select" id="teamTypeFilter">
+                        <option value="">Tüm Takım Tipleri</option>
+                        {% for type_code, type_name in team_types %}
+                        <option value="{{ type_code }}">{{ type_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-secondary w-100" id="applyFilters">
+                        <i class="fas fa-filter"></i> Filtrele
+                    </button>
+                </div>
+            </div>
 
-        <div class="table-responsive">
-            <table class="table table-hover" id="teamsTable">
-                <thead>
-                    <tr>
-                        <th>Takım Adı</th>
-                        <th>Takım Tipi</th>
-                        <th>Üye Sayısı</th>
-                        <th>Toplam Üretim</th>
-                        <th>Oluşturulma</th>
-                        <th>İşlemler</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for team in teams %}
-                    <tr>
-                        <td>{{ team.name }}</td>
-                        <td>{{ team.get_team_type_display }}</td>
-                        <td>{{ team.members.count }}</td>
-                        <td>{{ team.production_set.count }}</td>
-                        <td>{{ team.created_at|date:"d.m.Y" }}</td>
-                        <td>
-                            <button type="button" class="btn btn-info btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editTeamModal"
-                                    data-team-id="{{ team.id }}"
-                                    data-team-name="{{ team.name }}"
-                                    data-team-type="{{ team.team_type }}">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button type="button" class="btn btn-primary btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#membersModal"
-                                    data-team-id="{{ team.id }}"
-                                    data-team-name="{{ team.name }}">
-                                <i class="fas fa-user-plus"></i>
-                            </button>
-                            <button type="button" class="btn btn-danger btn-sm"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#deleteTeamModal"
-                                    data-team-id="{{ team.id }}"
-                                    data-team-name="{{ team.name }}">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <!-- Takım Tablosu -->
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="teamsTable">
+                    <thead>
+                        <tr>
+                            <th>Takım Adı</th>
+                            <th>Takım Tipi</th>
+                            <th>Üye Sayısı</th>
+                            <th>Toplam Üretim</th>
+                            <th>Oluşturulma Tarihi</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for team in teams %}
+                        <tr>
+                            <td>{{ team.name }}</td>
+                            <td>{{ team.get_team_type_display }}</td>
+                            <td>{{ team.member_count }}</td>
+                            <td>
+                                {% if team.team_type == 'ASSEMBLY' %}
+                                {{ team.assembled_aircrafts.count }} Uçak
+                                {% else %}
+                                {{ team.get_total_production }} Parça
+                                {% endif %}
+                            </td>
+                            <td>{{ team.created_at|date:"d.m.Y" }}</td>
+                            <td>
+                                {% if perms.production.change_team %}
+                                <button class="btn btn-sm btn-info edit-team" 
+                                        data-team-id="{{ team.id }}"
+                                        data-team-name="{{ team.name }}"
+                                        data-team-type="{{ team.team_type }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                {% endif %}
+                                
+                                <button class="btn btn-sm btn-primary manage-members"
+                                        data-team-id="{{ team.id }}"
+                                        data-team-name="{{ team.name }}">
+                                    <i class="fas fa-users"></i>
+                                </button>
+                                
+                                {% if perms.production.delete_team %}
+                                <button class="btn btn-sm btn-danger delete-team"
+                                        data-team-id="{{ team.id }}"
+                                        data-team-name="{{ team.name }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -72,22 +97,22 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Yeni Takım Ekle</h5>
+                <h5 class="modal-title">Yeni Takım</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="addTeamForm" method="post">
+            <form id="addTeamForm">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="name" class="form-label">Takım Adı</label>
-                        <input type="text" class="form-control" id="name" name="name" required>
+                        <label class="form-label">Takım Adı</label>
+                        <input type="text" class="form-control" name="name" required>
                     </div>
                     <div class="mb-3">
-                        <label for="team_type" class="form-label">Takım Tipi</label>
-                        <select class="form-select" id="team_type" name="team_type" required>
+                        <label class="form-label">Takım Tipi</label>
+                        <select class="form-select" name="team_type" required>
                             <option value="">Seçiniz...</option>
-                            {% for type_id, type_name in team_types %}
-                            <option value="{{ type_id }}">{{ type_name }}</option>
+                            {% for type_code, type_name in team_types %}
+                            <option value="{{ type_code }}">{{ type_name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -109,19 +134,19 @@
                 <h5 class="modal-title">Takım Düzenle</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="editTeamForm" method="post">
+            <form id="editTeamForm">
                 {% csrf_token %}
-                <input type="hidden" id="edit_team_id" name="team_id">
+                <input type="hidden" name="team_id" id="editTeamId">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="edit_name" class="form-label">Takım Adı</label>
-                        <input type="text" class="form-control" id="edit_name" name="name" required>
+                        <label class="form-label">Takım Adı</label>
+                        <input type="text" class="form-control" name="name" id="editTeamName" required>
                     </div>
                     <div class="mb-3">
-                        <label for="edit_team_type" class="form-label">Takım Tipi</label>
-                        <select class="form-select" id="edit_team_type" name="team_type" required>
-                            {% for type_id, type_name in team_types %}
-                            <option value="{{ type_id }}">{{ type_name }}</option>
+                        <label class="form-label">Takım Tipi</label>
+                        <select class="form-select" name="team_type" id="editTeamType" required>
+                            {% for type_code, type_name in team_types %}
+                            <option value="{{ type_code }}">{{ type_name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -136,32 +161,39 @@
 </div>
 
 <!-- Üye Yönetimi Modal -->
-<div class="modal fade" id="membersModal" tabindex="-1">
-    <div class="modal-dialog">
+<div class="modal fade" id="manageMembersModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Takım Üyeleri</h5>
+                <h5 class="modal-title">Üye Yönetimi - <span id="teamNameForMembers"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="membersForm" method="post">
-                {% csrf_token %}
-                <input type="hidden" id="members_team_id" name="team_id">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="members" class="form-label">Üyeler</label>
-                        <select class="form-select" id="members" name="members" multiple required>
-                            {% for user in users %}
-                            <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
-                            {% endfor %}
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Mevcut Üyeler</h6>
+                        <select multiple class="form-select" id="currentMembers" style="height: 200px;">
                         </select>
-                        <div class="form-text">Birden fazla üye seçmek için CTRL tuşunu basılı tutun.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Kullanıcılar</h6>
+                        <select multiple class="form-select" id="availableUsers" style="height: 200px;">
+                        </select>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                <div class="row mt-3">
+                    <div class="col-md-6 text-center">
+                        <button class="btn btn-danger" id="removeMember">
+                            <i class="fas fa-user-minus"></i> Üyeyi Çıkar
+                        </button>
+                    </div>
+                    <div class="col-md-6 text-center">
+                        <button class="btn btn-success" id="addMember">
+                            <i class="fas fa-user-plus"></i> Üye Ekle
+                        </button>
+                    </div>
                 </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
@@ -174,12 +206,12 @@
                 <h5 class="modal-title">Takım Sil</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="deleteTeamForm" method="post">
+            <form id="deleteTeamForm">
                 {% csrf_token %}
-                <input type="hidden" id="delete_team_id" name="team_id">
+                <input type="hidden" name="team_id" id="deleteTeamId">
                 <div class="modal-body">
                     <p>
-                        <strong><span id="delete_team_name"></span></strong> takımını silmek istediğinize emin misiniz?
+                        <strong><span id="deleteTeamName"></span></strong> takımını silmek istediğinize emin misiniz?
                     </p>
                     <p class="text-danger">
                         <i class="fas fa-exclamation-triangle"></i>
@@ -198,48 +230,199 @@
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+$(document).ready(function() {
     // DataTable initialization
-    const table = new DataTable('#teamsTable', {
+    var table = $('#teamsTable').DataTable({
         language: {
-            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json',
+            url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json'
         },
-        order: [[4, 'desc']],
+        order: [[0, 'asc']],
+        pageLength: 25
     });
 
-    // Edit modal
-    const editModal = document.getElementById('editTeamModal');
-    editModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const teamId = button.getAttribute('data-team-id');
-        const teamName = button.getAttribute('data-team-name');
-        const teamType = button.getAttribute('data-team-type');
-
-        editModal.querySelector('#edit_team_id').value = teamId;
-        editModal.querySelector('#edit_name').value = teamName;
-        editModal.querySelector('#edit_team_type').value = teamType;
+    // Filter handling
+    $('#applyFilters').click(function() {
+        var params = new URLSearchParams(window.location.search);
+        var teamType = $('#teamTypeFilter').val();
+        
+        if (teamType) params.set('team_type', teamType);
+        else params.delete('team_type');
+        
+        window.location.search = params.toString();
     });
 
-    // Members modal
-    const membersModal = document.getElementById('membersModal');
-    membersModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const teamId = button.getAttribute('data-team-id');
-        const teamName = button.getAttribute('data-team-name');
+    // Set current filters
+    var params = new URLSearchParams(window.location.search);
+    $('#teamTypeFilter').val(params.get('team_type') || '');
 
-        membersModal.querySelector('#members_team_id').value = teamId;
-        membersModal.querySelector('.modal-title').textContent = `${teamName} - Üye Yönetimi`;
+    // Add team form handling
+    $('#addTeamForm').submit(function(e) {
+        e.preventDefault();
+        $.ajax({
+            url: '{% url "api:team-list" %}',
+            type: 'POST',
+            data: $(this).serialize(),
+            success: function(response) {
+                $('#addTeamModal').modal('hide');
+                toastr.success('Takım başarıyla oluşturuldu');
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1000);
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON.detail || 'Bir hata oluştu');
+            }
+        });
     });
 
-    // Delete modal
-    const deleteModal = document.getElementById('deleteTeamModal');
-    deleteModal.addEventListener('show.bs.modal', function(event) {
-        const button = event.relatedTarget;
-        const teamId = button.getAttribute('data-team-id');
-        const teamName = button.getAttribute('data-team-name');
+    // Edit team handling
+    $('.edit-team').click(function() {
+        var teamId = $(this).data('team-id');
+        var teamName = $(this).data('team-name');
+        var teamType = $(this).data('team-type');
+        
+        $('#editTeamId').val(teamId);
+        $('#editTeamName').val(teamName);
+        $('#editTeamType').val(teamType);
+        
+        $('#editTeamModal').modal('show');
+    });
 
-        deleteModal.querySelector('#delete_team_id').value = teamId;
-        deleteModal.querySelector('#delete_team_name').textContent = teamName;
+    $('#editTeamForm').submit(function(e) {
+        e.preventDefault();
+        var teamId = $('#editTeamId').val();
+        
+        $.ajax({
+            url: '{% url "api:team-list" %}' + teamId + '/',
+            type: 'PUT',
+            data: $(this).serialize(),
+            success: function(response) {
+                $('#editTeamModal').modal('hide');
+                toastr.success('Takım başarıyla güncellendi');
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1000);
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON.detail || 'Bir hata oluştu');
+            }
+        });
+    });
+
+    // Delete team handling
+    $('.delete-team').click(function() {
+        var teamId = $(this).data('team-id');
+        var teamName = $(this).data('team-name');
+        
+        $('#deleteTeamId').val(teamId);
+        $('#deleteTeamName').text(teamName);
+        
+        $('#deleteTeamModal').modal('show');
+    });
+
+    $('#deleteTeamForm').submit(function(e) {
+        e.preventDefault();
+        var teamId = $('#deleteTeamId').val();
+        
+        $.ajax({
+            url: '{% url "api:team-list" %}' + teamId + '/',
+            type: 'DELETE',
+            success: function() {
+                $('#deleteTeamModal').modal('hide');
+                toastr.success('Takım başarıyla silindi');
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1000);
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON.detail || 'Bir hata oluştu');
+            }
+        });
+    });
+
+    // Manage members handling
+    $('.manage-members').click(function() {
+        var teamId = $(this).data('team-id');
+        var teamName = $(this).data('team-name');
+        
+        $('#teamNameForMembers').text(teamName);
+        
+        // Load current members
+        $.ajax({
+            url: '{% url "api:team-list" %}' + teamId + '/members/',
+            type: 'GET',
+            success: function(response) {
+                var currentMembers = $('#currentMembers').empty();
+                var availableUsers = $('#availableUsers').empty();
+                
+                response.current_members.forEach(function(member) {
+                    currentMembers.append(new Option(member.username, member.id));
+                });
+                
+                response.available_users.forEach(function(user) {
+                    availableUsers.append(new Option(user.username, user.id));
+                });
+                
+                $('#manageMembersModal').modal('show');
+            },
+            error: function(xhr) {
+                toastr.error('Üye listesi yüklenemedi');
+            }
+        });
+    });
+
+    // Add member
+    $('#addMember').click(function() {
+        var teamId = $('#deleteTeamId').val();
+        var selectedUsers = $('#availableUsers').val();
+        
+        if (!selectedUsers || selectedUsers.length === 0) {
+            toastr.warning('Lütfen eklenecek kullanıcıları seçin');
+            return;
+        }
+        
+        $.ajax({
+            url: '{% url "api:team-list" %}' + teamId + '/add_members/',
+            type: 'POST',
+            data: { user_ids: selectedUsers },
+            success: function() {
+                toastr.success('Üyeler başarıyla eklendi');
+                $('#manageMembersModal').modal('hide');
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1000);
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON.detail || 'Bir hata oluştu');
+            }
+        });
+    });
+
+    // Remove member
+    $('#removeMember').click(function() {
+        var teamId = $('#deleteTeamId').val();
+        var selectedMembers = $('#currentMembers').val();
+        
+        if (!selectedMembers || selectedMembers.length === 0) {
+            toastr.warning('Lütfen çıkarılacak üyeleri seçin');
+            return;
+        }
+        
+        $.ajax({
+            url: '{% url "api:team-list" %}' + teamId + '/remove_members/',
+            type: 'POST',
+            data: { user_ids: selectedMembers },
+            success: function() {
+                toastr.success('Üyeler başarıyla çıkarıldı');
+                $('#manageMembersModal').modal('hide');
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1000);
+            },
+            error: function(xhr) {
+                toastr.error(xhr.responseJSON.detail || 'Bir hata oluştu');
+            }
+        });
     });
 });
 </script>
