@@ -8,54 +8,85 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <link href="/static/css/style.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand" href="{% url 'production:home' %}">
-                <i class="fas fa-plane"></i> Baykar
+                <i class="fas fa-plane-departure"></i> BAYKAR ÜRETİM
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                {% if user.is_authenticated %}
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'production:parts_list' %}">
-                            <i class="fas fa-cogs"></i> Parçalar
+                        <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" 
+                           href="{% url 'production:home' %}">
+                            <i class="fas fa-home"></i> Ana Sayfa
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'production:teams_list' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'teams_list' %}active{% endif %}" 
+                           href="{% url 'production:teams_list' %}">
                             <i class="fas fa-users"></i> Takımlar
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'production:aircraft_list' %}">
-                            <i class="fas fa-fighter-jet"></i> Uçaklar
+                        <a class="nav-link {% if request.resolver_match.url_name == 'parts_list' %}active{% endif %}" 
+                           href="{% url 'production:parts_list' %}">
+                            <i class="fas fa-cogs"></i> Parçalar
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'aircraft_list' %}active{% endif %}" 
+                           href="{% url 'production:aircraft_list' %}">
+                            <i class="fas fa-plane"></i> Uçaklar
                         </a>
                     </li>
                 </ul>
                 <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'production:profile' %}">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'profile' %}active{% endif %}" 
+                           href="{% url 'production:profile' %}">
                             <i class="fas fa-user"></i> {{ user.get_full_name|default:user.username }}
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'logout' %}">
-                            <i class="fas fa-sign-out-alt"></i> Çıkış
+                        <form method="post" action="{% url 'logout' %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="nav-link border-0 bg-transparent">
+                                <i class="fas fa-sign-out-alt"></i> Çıkış
+                            </button>
+                        </form>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">
+                            <i class="fas fa-sign-in-alt"></i> Giriş
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item ms-2">
+                        <a href="#" id="language-toggle" class="nav-link px-2 py-1 rounded-pill border border-light text-light" style="font-size: 0.8rem; line-height: 1.2;">
+                            <span class="lang-tr">TR</span>
+                            <span class="lang-en d-none">EN</span>
                         </a>
                     </li>
                 </ul>
-                {% endif %}
             </div>
         </div>
     </nav>
 
-    <div class="container my-4">
-        {% if messages %}
+    <!-- Messages -->
+    {% if messages %}
+    <div class="container mt-3">
         <div class="messages">
             {% for message in messages %}
             <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
@@ -64,16 +95,610 @@
             </div>
             {% endfor %}
         </div>
-        {% endif %}
-
-        {% block content %}{% endblock %}
     </div>
+    {% endif %}
 
+    <!-- Main Content -->
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5 class="footer-title">Hakkımızda</h5>
+                    <p class="text-white-50">
+                        Baykar Üretim Takip Sistemi, uçak üretim süreçlerini verimli bir şekilde yönetmek için tasarlanmış bir platformdur.
+                    </p>
+                </div>
+                <div class="col-md-4 mb-4 mb-md-0">
+                    <h5 class="footer-title">Hızlı Erişim</h5>
+                    <ul class="footer-links">
+                        <li><a href="{% url 'production:home' %}">Ana Sayfa</a></li>
+                        <li><a href="{% url 'production:teams_list' %}">Takımlar</a></li>
+                        <li><a href="{% url 'production:parts_list' %}">Parçalar</a></li>
+                        <li><a href="{% url 'production:aircraft_list' %}">Uçaklar</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h5 class="footer-title">İletişim</h5>
+                    <ul class="footer-links">
+                        <li><i class="fas fa-map-marker-alt me-2"></i> İstanbul, Türkiye</li>
+                        <li><i class="fas fa-phone me-2"></i> +90 (212) 123 4567</li>
+                        <li><i class="fas fa-envelope me-2"></i> info@baykar.com</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom text-center">
+            <div class="container">
+                <p class="mb-0">© 2024 Baykar Üretim Takip Sistemi. Tüm hakları saklıdır.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
     <script src="/static/js/main.js"></script>
-    {% block extra_js %}{% endblock %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    
+    <script>
+    toastr.options = {
+        closeButton: true,
+        progressBar: true,
+        positionClass: 'toast-top-right',
+        timeOut: 3000
+    };
+    
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+            }
+        }
+    });
+
+    // Dil değiştirme fonksiyonu
+    $(document).ready(function() {
+        // Dil çevirileri
+        const translations = {
+            'tr': {
+                // Navbar
+                'home': 'Ana Sayfa',
+                'teams': 'Takımlar',
+                'parts': 'Parçalar',
+                'aircraft': 'Uçaklar',
+                'login': 'Giriş',
+                'logout': 'Çıkış',
+                'profile': 'Profil',
+                
+                // Footer
+                'about_us': 'Hakkımızda',
+                'about_text': 'Baykar Üretim Takip Sistemi, uçak üretim süreçlerini verimli bir şekilde yönetmek için tasarlanmış bir platformdur.',
+                'quick_access': 'Hızlı Erişim',
+                'contact': 'İletişim',
+                'copyright': '© 2024 Baykar Üretim Takip Sistemi. Tüm hakları saklıdır.',
+                
+                // Common
+                'view_details': 'Detaylar',
+                'add_new': 'Yeni Ekle',
+                'edit': 'Düzenle',
+                'delete': 'Sil',
+                'cancel': 'İptal',
+                'save': 'Kaydet',
+                'filter': 'Filtrele',
+                'all': 'Tümü',
+                'view_parts': 'Parçaları Gör',
+                'add_part': 'Parça Ekle',
+                'production_history': 'Üretim Geçmişi',
+                'new_aircraft': 'Yeni Uçak',
+                'aircraft_type': 'Uçak Tipi',
+                'assembly_team': 'Montaj Takımı',
+                'status': 'Durum',
+                'start_date': 'Başlangıç Tarihi',
+                'completion_date': 'Tamamlanma Tarihi',
+                'completion_rate': 'Tamamlanma Oranı',
+                'actions': 'İşlemler',
+                'completed': 'Tamamlandı',
+                'in_progress': 'Devam Ediyor',
+                'all_aircraft_types': 'Tüm Uçak Tipleri',
+                'all_statuses': 'Tüm Durumlar',
+                'all_assembly_teams': 'Tüm Montaj Takımları',
+                'dashboard': 'Gösterge Paneli',
+                'statistics': 'İstatistikler',
+                'status_info': 'Durum Bilgileri',
+                'low_stock_warnings': 'Düşük Stok Uyarıları',
+                'recent_productions': 'Son Üretimler',
+                'aircraft_models': 'Uçak Modelleri',
+                'tactical_uav': 'Taktik İnsansız Hava Aracı',
+                'advanced_uav': 'Gelişmiş İnsansız Hava Aracı',
+                'attack_uav': 'Taarruzi İnsansız Hava Aracı',
+                'unmanned_fighter': 'İnsansız Savaş Uçağı',
+                'welcome': 'Uçak Üretim Takip Sistemine Hoş Geldiniz',
+                'login_message': 'Sistemi kullanmak için lütfen giriş yapın',
+                'part': 'Parça',
+                'team': 'Takım',
+                'quantity': 'Miktar',
+                'date': 'Tarih',
+                'stock': 'Stok',
+                'min_stock': 'Min. Stok',
+                'low_stock': 'Düşük Stok',
+                'all_parts_sufficient': 'Tüm parçalar yeterli stok seviyesinde.',
+                'no_production_records': 'Henüz üretim kaydı bulunmamaktadır.'
+            },
+            'en': {
+                // Navbar
+                'home': 'Home',
+                'teams': 'Teams',
+                'parts': 'Parts',
+                'aircraft': 'Aircraft',
+                'login': 'Login',
+                'logout': 'Logout',
+                'profile': 'Profile',
+                
+                // Footer
+                'about_us': 'About Us',
+                'about_text': 'Baykar Production Tracking System is a platform designed to efficiently manage aircraft production processes.',
+                'quick_access': 'Quick Access',
+                'contact': 'Contact',
+                'copyright': '© 2024 Baykar Production Tracking System. All rights reserved.',
+                
+                // Common
+                'view_details': 'Details',
+                'add_new': 'Add New',
+                'edit': 'Edit',
+                'delete': 'Delete',
+                'cancel': 'Cancel',
+                'save': 'Save',
+                'filter': 'Filter',
+                'all': 'All',
+                'view_parts': 'View Parts',
+                'add_part': 'Add Part',
+                'production_history': 'Production History',
+                'new_aircraft': 'New Aircraft',
+                'aircraft_type': 'Aircraft Type',
+                'assembly_team': 'Assembly Team',
+                'status': 'Status',
+                'start_date': 'Start Date',
+                'completion_date': 'Completion Date',
+                'completion_rate': 'Completion Rate',
+                'actions': 'Actions',
+                'completed': 'Completed',
+                'in_progress': 'In Progress',
+                'all_aircraft_types': 'All Aircraft Types',
+                'all_statuses': 'All Statuses',
+                'all_assembly_teams': 'All Assembly Teams',
+                'dashboard': 'Dashboard',
+                'statistics': 'Statistics',
+                'status_info': 'Status Information',
+                'low_stock_warnings': 'Low Stock Warnings',
+                'recent_productions': 'Recent Productions',
+                'aircraft_models': 'Aircraft Models',
+                'tactical_uav': 'Tactical Unmanned Aerial Vehicle',
+                'advanced_uav': 'Advanced Unmanned Aerial Vehicle',
+                'attack_uav': 'Attack Unmanned Aerial Vehicle',
+                'unmanned_fighter': 'Unmanned Fighter Aircraft',
+                'welcome': 'Welcome to Aircraft Production Tracking System',
+                'login_message': 'Please login to use the system',
+                'part': 'Part',
+                'team': 'Team',
+                'quantity': 'Quantity',
+                'date': 'Date',
+                'stock': 'Stock',
+                'min_stock': 'Min. Stock',
+                'low_stock': 'Low Stock',
+                'all_parts_sufficient': 'All parts have sufficient stock levels.',
+                'no_production_records': 'No production records yet.'
+            }
+        };
+        
+        // Sayfa yüklendiğinde localStorage'dan dil ayarını al
+        let currentLang = localStorage.getItem('appLanguage') || 'tr';
+        
+        // Sayfa yüklendiğinde dil ayarını uygula
+        applyLanguage(currentLang, false);
+        
+        // Dil değiştirme butonu tıklama olayı
+        $('#language-toggle').click(function(e) {
+            e.preventDefault();
+            
+            // Dili değiştir
+            currentLang = currentLang === 'tr' ? 'en' : 'tr';
+            
+            // Dil ayarını localStorage'a kaydet
+            localStorage.setItem('appLanguage', currentLang);
+            
+            // Dil ayarını uygula
+            applyLanguage(currentLang, true);
+        });
+        
+        // Dil ayarını uygulama fonksiyonu
+        function applyLanguage(lang, showNotification) {
+            // Buton metnini güncelle
+            if (lang === 'tr') {
+                $('.lang-tr').removeClass('d-none');
+                $('.lang-en').addClass('d-none');
+            } else {
+                $('.lang-tr').addClass('d-none');
+                $('.lang-en').removeClass('d-none');
+            }
+            
+            // Navbar metinlerini güncelle
+            updateNavbarTexts(lang);
+            
+            // Footer metinlerini güncelle
+            updateFooterTexts(lang);
+            
+            // Sayfa içeriğindeki diğer metinleri güncelle
+            translatePageContent(lang);
+            
+            // Dil değişikliği bildirimini göster (sadece kullanıcı tıkladığında)
+            if (showNotification) {
+                const message = lang === 'tr' ? 'Dil Türkçe olarak değiştirildi.' : 'Language changed to English.';
+                toastr.info(message);
+            }
+        }
+        
+        // Navbar metinlerini güncelleme fonksiyonu
+        function updateNavbarTexts(lang) {
+            // Ana menü linkleri
+            $('.nav-link:contains("Ana Sayfa"), .nav-link:contains("Home")').html('<i class="fas fa-home"></i> ' + translations[lang]['home']);
+            $('.nav-link:contains("Takımlar"), .nav-link:contains("Teams")').html('<i class="fas fa-users"></i> ' + translations[lang]['teams']);
+            $('.nav-link:contains("Parçalar"), .nav-link:contains("Parts")').html('<i class="fas fa-cogs"></i> ' + translations[lang]['parts']);
+            $('.nav-link:contains("Uçaklar"), .nav-link:contains("Aircraft")').html('<i class="fas fa-plane"></i> ' + translations[lang]['aircraft']);
+            
+            // Profil linki
+            $('.nav-link:has(.fa-user)').each(function() {
+                const username = $(this).text().trim().replace('Profil', '').replace('Profile', '');
+                $(this).html('<i class="fas fa-user"></i> ' + username);
+            });
+            
+            // Giriş/Çıkış butonları
+            $('.nav-link:contains("Giriş"), .nav-link:contains("Login")').html('<i class="fas fa-sign-in-alt"></i> ' + translations[lang]['login']);
+            $('button:contains("Çıkış"), button:contains("Logout")').html('<i class="fas fa-sign-out-alt"></i> ' + translations[lang]['logout']);
+        }
+        
+        // Footer metinlerini güncelleme fonksiyonu
+        function updateFooterTexts(lang) {
+            // Footer başlıkları
+            $('.footer-title:contains("Hakkımızda"), .footer-title:contains("About Us")').text(translations[lang]['about_us']);
+            $('.footer-title:contains("Hızlı Erişim"), .footer-title:contains("Quick Access")').text(translations[lang]['quick_access']);
+            $('.footer-title:contains("İletişim"), .footer-title:contains("Contact")').text(translations[lang]['contact']);
+            
+            // Footer açıklama metni
+            $('.text-white-50').text(translations[lang]['about_text']);
+            
+            // Telif hakkı metni
+            $('.footer-bottom p').text(translations[lang]['copyright']);
+            
+            // Footer linkleri
+            $('.footer-links li a:contains("Ana Sayfa"), .footer-links li a:contains("Home")').text(translations[lang]['home']);
+            $('.footer-links li a:contains("Takımlar"), .footer-links li a:contains("Teams")').text(translations[lang]['teams']);
+            $('.footer-links li a:contains("Parçalar"), .footer-links li a:contains("Parts")').text(translations[lang]['parts']);
+            $('.footer-links li a:contains("Uçaklar"), .footer-links li a:contains("Aircraft")').text(translations[lang]['aircraft']);
+        }
+        
+        // Sayfa içeriğini çevirme fonksiyonu
+        function translatePageContent(lang) {
+            // Sayfa başlıklarını güncelle
+            updatePageTitles(lang);
+            
+            // Tablo başlıklarını güncelle
+            updateTableHeaders(lang);
+            
+            // Butonları güncelle
+            updateButtons(lang);
+            
+            // Formları güncelle
+            updateForms(lang);
+            
+            // Diğer metinleri güncelle
+            updateMiscTexts(lang);
+        }
+        
+        // Sayfa başlıklarını güncelleme fonksiyonu
+        function updatePageTitles(lang) {
+            // Ana sayfa başlığı
+            $('h1.display-4, h2.display-4').each(function() {
+                const text = $(this).text().trim();
+                
+                if (text.includes('Hava Aracı Üretim Sistemi') || text.includes('Aircraft Production System')) {
+                    $(this).text(lang === 'tr' ? 'Hava Aracı Üretim Sistemi' : 'Aircraft Production System');
+                }
+                
+                if (text.includes('Uçak Yönetimi') || text.includes('Aircraft Management')) {
+                    $(this).text(lang === 'tr' ? 'Uçak Yönetimi' : 'Aircraft Management');
+                }
+                
+                if (text.includes('Takım Yönetimi') || text.includes('Team Management')) {
+                    $(this).text(lang === 'tr' ? 'Takım Yönetimi' : 'Team Management');
+                }
+                
+                if (text.includes('Parça Yönetimi') || text.includes('Part Management')) {
+                    $(this).text(lang === 'tr' ? 'Parça Yönetimi' : 'Part Management');
+                }
+            });
+            
+            // Sayfa açıklamaları
+            $('p.lead').each(function() {
+                const text = $(this).text().trim();
+                
+                if (text.includes('Türkiye\'nin milli ve özgün hava araçları') || text.includes('Manage Turkey\'s national and original aircraft')) {
+                    $(this).text(lang === 'tr' ? 'Türkiye\'nin milli ve özgün hava araçları üretim süreçlerini yönetin.' : 'Manage Turkey\'s national and original aircraft production processes.');
+                }
+                
+                if (text.includes('Üretim sürecindeki ve tamamlanan uçakları') || text.includes('View and manage aircraft in production')) {
+                    $(this).text(lang === 'tr' ? 'Üretim sürecindeki ve tamamlanan uçakları görüntüleyin ve yönetin.' : 'View and manage aircraft in production and completed ones.');
+                }
+                
+                if (text.includes('Sistemi kullanmak için') || text.includes('Please login to use')) {
+                    $(this).text(lang === 'tr' ? 'Sistemi kullanmak için lütfen giriş yapın.' : 'Please login to use the system.');
+                }
+            });
+            
+            // Kart başlıkları
+            $('.card-title, .modal-title').each(function() {
+                const text = $(this).text().trim();
+                
+                if (text === 'Gösterge Paneli' || text === 'Dashboard') {
+                    $(this).text(translations[lang]['dashboard']);
+                }
+                
+                if (text === 'Üretim İstatistikleri' || text === 'Production Statistics') {
+                    $(this).text(lang === 'tr' ? 'Üretim İstatistikleri' : 'Production Statistics');
+                }
+                
+                if (text === 'Son 30 Gün Üretim Grafiği' || text === 'Last 30 Days Production Chart') {
+                    $(this).text(lang === 'tr' ? 'Son 30 Gün Üretim Grafiği' : 'Last 30 Days Production Chart');
+                }
+                
+                if (text === 'Düşük Stok Uyarıları' || text === 'Low Stock Warnings') {
+                    $(this).text(translations[lang]['low_stock_warnings']);
+                }
+                
+                if (text === 'Son Üretimler' || text === 'Recent Productions') {
+                    $(this).text(translations[lang]['recent_productions']);
+                }
+                
+                if (text === 'Uçak Listesi' || text === 'Aircraft List') {
+                    $(this).text(lang === 'tr' ? 'Uçak Listesi' : 'Aircraft List');
+                }
+                
+                if (text === 'Yeni Uçak' || text === 'New Aircraft') {
+                    $(this).text(translations[lang]['new_aircraft']);
+                }
+                
+                if (text === 'Parça Ekle' || text === 'Add Part') {
+                    $(this).text(translations[lang]['add_part']);
+                }
+                
+                if (text === 'Parça Listesi' || text === 'Parts List') {
+                    $(this).text(lang === 'tr' ? 'Parça Listesi' : 'Parts List');
+                }
+            });
+            
+            // Bölüm başlıkları
+            $('h2.section-title').each(function() {
+                const text = $(this).text().trim();
+                
+                if (text === 'Gösterge Paneli' || text === 'Dashboard') {
+                    $(this).text(translations[lang]['dashboard']);
+                }
+                
+                if (text === 'Üretim İstatistikleri' || text === 'Production Statistics') {
+                    $(this).text(lang === 'tr' ? 'Üretim İstatistikleri' : 'Production Statistics');
+                }
+                
+                if (text === 'Durum Bilgileri' || text === 'Status Information') {
+                    $(this).text(translations[lang]['status_info']);
+                }
+                
+                if (text === 'Uçak Modelleri' || text === 'Aircraft Models') {
+                    $(this).text(translations[lang]['aircraft_models']);
+                }
+            });
+        }
+        
+        // Tablo başlıklarını güncelleme fonksiyonu
+        function updateTableHeaders(lang) {
+            // Uçak tablosu
+            $('table th').each(function() {
+                const text = $(this).text().trim();
+                
+                if (text === 'Uçak Tipi' || text === 'Aircraft Type') {
+                    $(this).text(translations[lang]['aircraft_type']);
+                }
+                
+                if (text === 'Montaj Takımı' || text === 'Assembly Team') {
+                    $(this).text(translations[lang]['assembly_team']);
+                }
+                
+                if (text === 'Durum' || text === 'Status') {
+                    $(this).text(translations[lang]['status']);
+                }
+                
+                if (text === 'Başlangıç Tarihi' || text === 'Start Date') {
+                    $(this).text(translations[lang]['start_date']);
+                }
+                
+                if (text === 'Tamamlanma Tarihi' || text === 'Completion Date') {
+                    $(this).text(translations[lang]['completion_date']);
+                }
+                
+                if (text === 'Tamamlanma Oranı' || text === 'Completion Rate') {
+                    $(this).text(translations[lang]['completion_rate']);
+                }
+                
+                if (text === 'İşlemler' || text === 'Actions') {
+                    $(this).text(translations[lang]['actions']);
+                }
+                
+                if (text === 'Parça' || text === 'Part') {
+                    $(this).text(translations[lang]['part']);
+                }
+                
+                if (text === 'Takım' || text === 'Team') {
+                    $(this).text(translations[lang]['team']);
+                }
+                
+                if (text === 'Miktar' || text === 'Quantity') {
+                    $(this).text(translations[lang]['quantity']);
+                }
+                
+                if (text === 'Tarih' || text === 'Date') {
+                    $(this).text(translations[lang]['date']);
+                }
+                
+                if (text === 'Stok' || text === 'Stock') {
+                    $(this).text(translations[lang]['stock']);
+                }
+                
+                if (text === 'Min. Stok' || text === 'Min. Stock') {
+                    $(this).text(translations[lang]['min_stock']);
+                }
+                
+                if (text === 'Durum' || text === 'Status') {
+                    $(this).text(translations[lang]['status']);
+                }
+            });
+            
+            // Durum badge'leri
+            $('.badge').each(function() {
+                const text = $(this).text().trim();
+                
+                if (text === 'Tamamlandı' || text === 'Completed') {
+                    $(this).text(translations[lang]['completed']);
+                }
+                
+                if (text === 'Devam Ediyor' || text === 'In Progress') {
+                    $(this).text(translations[lang]['in_progress']);
+                }
+                
+                if (text === 'Düşük Stok' || text === 'Low Stock') {
+                    $(this).text(translations[lang]['low_stock']);
+                }
+            });
+        }
+        
+        // Butonları güncelleme fonksiyonu
+        function updateButtons(lang) {
+            // Filtre butonları
+            $('button:contains("Filtrele"), button:contains("Filter")').text(translations[lang]['filter']);
+            
+            // Yeni ekle butonları
+            $('button:contains("Yeni Uçak"), button:contains("New Aircraft")').html('<i class="fas fa-plus"></i> ' + translations[lang]['new_aircraft']);
+            
+            // İşlem butonları
+            $('.btn:contains("Parçaları Gör"), .btn:contains("View Parts")').html('<i class="fas fa-list"></i> ' + translations[lang]['view_parts']);
+            $('.btn:contains("Parça Ekle"), .btn:contains("Add Part")').html('<i class="fas fa-plus"></i> ' + translations[lang]['add_part']);
+            $('.btn:contains("Üretim Geçmişi"), .btn:contains("Production History")').html('<i class="fas fa-history"></i> ' + translations[lang]['production_history']);
+            $('.btn:contains("Sil"), .btn:contains("Delete")').html('<i class="fas fa-trash"></i> ' + translations[lang]['delete']);
+            
+            // Form butonları
+            $('.modal-footer .btn-secondary').text(translations[lang]['cancel']);
+            $('.modal-footer .btn-primary:contains("Başlat"), .modal-footer .btn-primary:contains("Start")').text(lang === 'tr' ? 'Başlat' : 'Start');
+            $('.modal-footer .btn-primary:contains("Ekle"), .modal-footer .btn-primary:contains("Add")').text(lang === 'tr' ? 'Ekle' : 'Add');
+            $('.modal-footer .btn-danger:contains("Sil"), .modal-footer .btn-danger:contains("Delete")').text(translations[lang]['delete']);
+        }
+        
+        // Formları güncelleme fonksiyonu
+        function updateForms(lang) {
+            // Form etiketleri
+            $('label.form-label').each(function() {
+                const text = $(this).text().trim();
+                
+                if (text === 'Uçak Tipi' || text === 'Aircraft Type') {
+                    $(this).text(translations[lang]['aircraft_type']);
+                }
+                
+                if (text === 'Durum' || text === 'Status') {
+                    $(this).text(translations[lang]['status']);
+                }
+                
+                if (text === 'Montaj Takımı' || text === 'Assembly Team') {
+                    $(this).text(translations[lang]['assembly_team']);
+                }
+            });
+            
+            // Select option metinleri
+            $('select option').each(function() {
+                const text = $(this).text().trim();
+                
+                if (text === 'Tüm Uçak Tipleri' || text === 'All Aircraft Types') {
+                    $(this).text(translations[lang]['all_aircraft_types']);
+                }
+                
+                if (text === 'Tüm Durumlar' || text === 'All Statuses') {
+                    $(this).text(translations[lang]['all_statuses']);
+                }
+                
+                if (text === 'Tamamlandı' || text === 'Completed') {
+                    $(this).text(translations[lang]['completed']);
+                }
+                
+                if (text === 'Devam Ediyor' || text === 'In Progress') {
+                    $(this).text(translations[lang]['in_progress']);
+                }
+                
+                if (text === 'Tüm Montaj Takımları' || text === 'All Assembly Teams') {
+                    $(this).text(translations[lang]['all_assembly_teams']);
+                }
+                
+                if (text === 'Seçiniz...' || text === 'Select...') {
+                    $(this).text(lang === 'tr' ? 'Seçiniz...' : 'Select...');
+                }
+            });
+        }
+        
+        // Diğer metinleri güncelleme fonksiyonu
+        function updateMiscTexts(lang) {
+            // Uçak modelleri açıklamaları
+            $('.card-text').each(function() {
+                const text = $(this).text().trim();
+                
+                if (text === 'Taktik İnsansız Hava Aracı' || text === 'Tactical Unmanned Aerial Vehicle') {
+                    $(this).text(translations[lang]['tactical_uav']);
+                }
+                
+                if (text === 'Gelişmiş İnsansız Hava Aracı' || text === 'Advanced Unmanned Aerial Vehicle') {
+                    $(this).text(translations[lang]['advanced_uav']);
+                }
+                
+                if (text === 'Taarruzi İnsansız Hava Aracı' || text === 'Attack Unmanned Aerial Vehicle') {
+                    $(this).text(translations[lang]['attack_uav']);
+                }
+                
+                if (text === 'İnsansız Savaş Uçağı' || text === 'Unmanned Fighter Aircraft') {
+                    $(this).text(translations[lang]['unmanned_fighter']);
+                }
+            });
+            
+            // Bilgi mesajları
+            $('.text-center .lead').each(function() {
+                const text = $(this).text().trim();
+                
+                if (text === 'Tüm parçalar yeterli stok seviyesinde.' || text === 'All parts have sufficient stock levels.') {
+                    $(this).text(translations[lang]['all_parts_sufficient']);
+                }
+                
+                if (text === 'Henüz üretim kaydı bulunmamaktadır.' || text === 'No production records yet.') {
+                    $(this).text(translations[lang]['no_production_records']);
+                }
+            });
+            
+            // Hoş geldiniz mesajı
+            $('h2:contains("Uçak Üretim Takip Sistemine Hoş Geldiniz"), h2:contains("Welcome to Aircraft Production Tracking System")').text(translations[lang]['welcome']);
+        }
+    });
+    </script>
+    
+    {% block extra_js %}
+    {% endblock %}
 </body>
 </html> 

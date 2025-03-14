@@ -1,7 +1,6 @@
 # Python
-__pycache__/
 *.py[cod]
-*$py.class
+__pycache__/
 *.so
 .Python
 build/
@@ -26,6 +25,7 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 media/
+static/
 staticfiles/
 
 # Virtual Environment
@@ -39,22 +39,26 @@ env/
 .vscode/
 *.swp
 *.swo
+.project
+.pydevproject
+.settings/
+
+# OS
 .DS_Store
+Thumbs.db
+*.bak
+*.tmp
+
+# Docker
+.docker/
+docker-compose.override.yml
 
 # Coverage
 htmlcov/
-.tox/
-.nox/
 .coverage
 .coverage.*
-.cache
-nosetests.xml
 coverage.xml
 *.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
 
 # Translations
 *.mo
@@ -65,8 +69,6 @@ docs/_build/
 docs/build/
 
 # Misc
-*.bak
-*.tmp
 *.temp
 .env.local
 .env.development.local
