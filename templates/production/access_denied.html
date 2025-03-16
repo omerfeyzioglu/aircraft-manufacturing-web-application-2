@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Erişim Engellendi{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-circle mr-2"></i> Erişim Engellendi
+                    </h4>
+                </div>
+                <div class="card-body text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-lock" style="font-size: 64px; color: #dc3545;"></i>
+                    </div>
+                    <h5 class="card-title">Bu kaynağa erişim yetkiniz bulunmamaktadır</h5>
+                    <p class="card-text">
+                        Bu uçak sizin takımınıza atanmamış. Sadece kendi takımınıza atanmış uçaklar veya henüz bir takıma atanmamış uçaklar üzerinde işlem yapabilirsiniz.
+                    </p>
+                    <div class="mt-4">
+                        <a href="{% url 'production:aircraft_list' %}" class="btn btn-primary">
+                            <i class="fas fa-arrow-left mr-2"></i> Uçak Listesine Dön
+                        </a>
+                        <a href="{% url 'production:home' %}" class="btn btn-secondary ml-2">
+                            <i class="fas fa-home mr-2"></i> Ana Sayfaya Dön
+                        </a>
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <small class="text-muted">Eğer bu bir hata olduğunu düşünüyorsanız, lütfen sistem yöneticisi ile iletişime geçiniz.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

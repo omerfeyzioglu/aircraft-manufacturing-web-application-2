@@ -74,9 +74,10 @@
                     </li>
                     {% endif %}
                     <li class="nav-item ms-2">
-                        <a href="#" id="language-toggle" class="nav-link px-2 py-1 rounded-pill border border-light text-light" style="font-size: 0.8rem; line-height: 1.2;">
+                        <a href="#" id="language-toggle" class="nav-link px-3 py-1 rounded-pill border border-light text-light d-flex align-items-center justify-content-center" style="font-size: 0.9rem; line-height: 1.2; min-width: 40px; background-color: rgba(255,255,255,0.1); transition: all 0.3s ease;">
                             <span class="lang-tr">TR</span>
                             <span class="lang-en d-none">EN</span>
+                            <i class="fas fa-globe ms-1"></i>
                         </a>
                     </li>
                 </ul>
@@ -90,7 +91,7 @@
         <div class="messages">
             {% for message in messages %}
             <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
-                {{ message }}
+                {{ message|safe }}
                 <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
             {% endfor %}
@@ -695,6 +696,94 @@
             // Hoş geldiniz mesajı
             $('h2:contains("Uçak Üretim Takip Sistemine Hoş Geldiniz"), h2:contains("Welcome to Aircraft Production Tracking System")').text(translations[lang]['welcome']);
         }
+
+        // Üretim formu için tıklama kilidi
+        let isSubmitting = false;
+        
+        $(document).on('submit', '#productionForm', function(e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                return;
+            }
+            
+            isSubmitting = true;
+            const $form = $(this);
+            const $submitBtn = $form.find('button[type="submit"]');
+            const originalText = $submitBtn.text();
+            
+            $submitBtn.prop('disabled', true).text('İşleniyor...');
+            
+            $.ajax({
+                url: $form.attr('action'),
+                type: 'POST',
+                data: $form.serialize(),
+                success: function(response) {
+                    if (response.success) {
+                        toastr.success(response.message);
+                        // Stok bilgisini güncelle
+                        if (response.new_stock !== undefined) {
+                            $('#stock-' + $form.find('[name="part"]').val()).text(response.new_stock);
+                        }
+                        $form.trigger('reset');
+                    } else {
+                        toastr.error(response.error || 'Bir hata oluştu');
+                    }
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON ? xhr.responseJSON.error : 'Bir hata oluştu';
+                    toastr.error(error);
+                },
+                complete: function() {
+                    isSubmitting = false;
+                    $submitBtn.prop('disabled', false).text(originalText);
+                }
+            });
+            
+            e.preventDefault();
+        });
+
+        // Parça oluşturma formu için hata yönetimi
+        $(document).on('submit', '#partCreateForm', function(e) {
+            e.preventDefault();
+            const $form = $(this);
+            const $submitBtn = $form.find('button[type="submit"]');
+            const originalText = $submitBtn.text();
+            
+            $submitBtn.prop('disabled', true).text('Kaydediliyor...');
+            
+            $.ajax({
+                url: $form.attr('action'),
+                type: 'POST',
+                data: $form.serialize(),
+                success: function(response) {
+                    toastr.success('Parça başarıyla oluşturuldu');
+                    window.location.reload();
+                },
+                error: function(xhr) {
+                    let errorMessage = 'Bir hata oluştu';
+                    if (xhr.responseJSON) {
+                        if (xhr.responseJSON.detail) {
+                            errorMessage = xhr.responseJSON.detail;
+                        } else if (xhr.responseJSON.error) {
+                            errorMessage = xhr.responseJSON.error;
+                        } else {
+                            // Form validation errors
+                            const errors = [];
+                            Object.keys(xhr.responseJSON).forEach(key => {
+                                errors.push(`${key}: ${xhr.responseJSON[key].join(' ')}`);
+                            });
+                            if (errors.length > 0) {
+                                errorMessage = errors.join('\n');
+                            }
+                        }
+                    }
+                    toastr.error(errorMessage);
+                },
+                complete: function() {
+                    $submitBtn.prop('disabled', false).text(originalText);
+                }
+            });
+        });
     });
     </script>
     
