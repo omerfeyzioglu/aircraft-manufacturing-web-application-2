@@ -50,7 +50,7 @@
                         <tr>
                             <td>{{ team.name }}</td>
                             <td>{{ team.get_team_type_display }}</td>
-                            <td>{{ team.member_count }}</td>
+                            <td>{{ team.members_count }}</td>
                             <td>
                                 {% if team.team_type == 'ASSEMBLY' %}
                                 {{ team.assembled_aircrafts.count }} Uçak

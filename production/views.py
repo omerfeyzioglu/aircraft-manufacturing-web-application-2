@@ -23,6 +23,7 @@ from django.template.response import TemplateResponse
 from django.contrib import admin
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.views import LoginView
+from django.core.serializers.json import DjangoJSONEncoder
 
 # Template views
 @login_required
@@ -58,15 +59,32 @@ def home(request):
             total=Sum('quantity')
         ).order_by('date')
         
+        # Create a dictionary with all dates in the last 30 days
+        all_dates = {}
+        current_date = thirty_days_ago.date()
+        today = timezone.now().date()
+        
+        while current_date <= today:
+            all_dates[current_date.strftime('%Y-%m-%d')] = 0
+            current_date += timedelta(days=1)
+        
+        # Fill in the production data
+        for item in daily_production:
+            date_str = item['date'].strftime('%Y-%m-%d')
+            all_dates[date_str] = item['total']
+        
         # Convert to list of dicts for JSON serialization
         daily_production_data = []
-        for item in daily_production:
+        for date_str, total in all_dates.items():
             daily_production_data.append({
-                'created_at__date': item['date'].strftime('%Y-%m-%d'),
-                'total': item['total']
+                'created_at__date': date_str,
+                'total': total
             })
         
-        context['daily_production'] = json.dumps(daily_production_data)
+        # Sort by date
+        daily_production_data.sort(key=lambda x: x['created_at__date'])
+        
+        context['daily_production'] = json.dumps(daily_production_data, cls=DjangoJSONEncoder)
     
     return render(request, 'home.html', context)
 
@@ -139,8 +157,18 @@ def teams_list(request):
 
 @login_required
 def aircraft_list(request):
-    aircraft = Aircraft.objects.all()
+    # Sadece montaj takımı üyeleri ve süper kullanıcılar erişebilir
     user_team = request.user.team_members.first()
+    
+    # Süper kullanıcı değilse ve montaj takımında değilse erişimi engelle
+    if not request.user.is_superuser and (not user_team or user_team.team_type != 'ASSEMBLY'):
+        messages.error(
+            request, 
+            '<span style="color: red; font-weight: bold;">Bu sayfaya erişim yetkiniz bulunmamaktadır.</span>'
+        )
+        return redirect('production:home')
+    
+    aircraft = Aircraft.objects.all()
     
     # Filtreleme
     aircraft_type = request.GET.get('aircraft_type')
@@ -366,7 +394,26 @@ def add_aircraft_part(request):
 
 @login_required
 def get_required_parts(request, aircraft_id):
+    # Sadece montaj takımı üyeleri ve süper kullanıcılar erişebilir
+    user_team = request.user.team_members.first()
+    
+    # Süper kullanıcı değilse ve montaj takımında değilse erişimi engelle
+    if not request.user.is_superuser and (not user_team or user_team.team_type != 'ASSEMBLY'):
+        return JsonResponse({
+            'error': 'Erişim Engellendi: Bu işlem sadece montaj takımı üyeleri ve yöneticiler tarafından gerçekleştirilebilir.',
+            'status': 'error',
+            'code': 403
+        }, status=403)
+    
     aircraft = get_object_or_404(Aircraft, id=aircraft_id)
+    
+    # Kullanıcının takımına göre erişimi kontrol et (süper kullanıcı için erişim serbest)
+    if (not request.user.is_superuser and 
+        user_team and 
+        aircraft.assembly_team is not None and 
+        aircraft.assembly_team != user_team):
+        return JsonResponse({'error': 'Bu uçağa erişim yetkiniz bulunmamaktadır.'}, status=403)
+    
     required = REQUIRED_PARTS[aircraft.aircraft_type]
     
     # Get current parts by team type
@@ -941,6 +988,18 @@ class AircraftViewSet(viewsets.ModelViewSet):
     """
     queryset = Aircraft.objects.all()
     serializer_class = AircraftSerializer
+    
+    def get_permissions(self):
+        """
+        Sadece montaj takımı üyeleri ve süper kullanıcılar erişebilir.
+        """
+        permission_classes = [IsAuthenticated]
+        
+        # Süper kullanıcı değilse, özel izin kontrolü yap
+        if not self.request.user.is_superuser:
+            permission_classes.append(IsAssemblyTeamMember)
+            
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
         """
@@ -1397,23 +1456,22 @@ def part_list(request):
 @login_required
 def aircraft_detail(request, pk):
     """Uçak detay görünümü."""
-    aircraft = get_object_or_404(Aircraft, pk=pk)
-    
-    # Kullanıcı süper kullanıcı değilse ve takıma atanmamışsa uyarı göster
+    # Sadece montaj takımı üyeleri ve süper kullanıcılar erişebilir
     user_team = Team.objects.filter(members=request.user).first()
-    if not request.user.is_superuser and not user_team:
-        messages.warning(
+    
+    # Süper kullanıcı değilse ve montaj takımında değilse erişimi engelle
+    if not request.user.is_superuser and (not user_team or user_team.team_type != 'ASSEMBLY'):
+        messages.error(
             request, 
-            '<div style="color: red; font-weight: bold; font-size: 16px; text-align: center; padding: 10px; border: 2px solid red; border-radius: 5px; background-color: #ffeeee;">'
-            '<i class="fas fa-exclamation-triangle"></i> '
-            'Herhangi bir takıma üye değilsiniz. Lütfen admin ile iletişime geçiniz.'
-            '</div>'
+            '<span style="color: red; font-weight: bold;">Bu sayfaya erişim yetkiniz bulunmamaktadır.</span>'
         )
+        return redirect('production:home')
+    
+    aircraft = get_object_or_404(Aircraft, pk=pk)
     
     # Kullanıcının takımına göre erişimi kontrol et (süper kullanıcı için erişim serbest)
     if (not request.user.is_superuser and 
         user_team and 
-        user_team.team_type == 'ASSEMBLY' and 
         aircraft.assembly_team is not None and 
         aircraft.assembly_team != user_team):
         # Kullanıcı sadece kendi takımının uçaklarını ve atanmamış uçakları görebilir
@@ -1476,6 +1534,39 @@ class IsTeamMemberOrReadOnly(permissions.BasePermission):
             return user_team and user_team.team_type == 'ASSEMBLY' and obj.aircraft.assembly_team == user_team
         
         return False 
+
+class IsAssemblyTeamMember(permissions.BasePermission):
+    """
+    Sadece montaj takımı üyelerine erişim izni veren özel izin sınıfı.
+    """
+    def has_permission(self, request, view):
+        # Süper kullanıcıya her zaman izin ver
+        if request.user.is_superuser:
+            return True
+        
+        # Kullanıcının bir takımı var mı kontrol et
+        user_team = Team.objects.filter(members=request.user).first()
+        
+        # Sadece montaj takımı üyelerine izin ver
+        return user_team and user_team.team_type == 'ASSEMBLY'
+    
+    def has_object_permission(self, request, view, obj):
+        # Süper kullanıcıya her zaman izin ver
+        if request.user.is_superuser:
+            return True
+        
+        # Kullanıcının bir takımı var mı kontrol et
+        user_team = Team.objects.filter(members=request.user).first()
+        
+        # Sadece montaj takımı üyelerine izin ver
+        if not user_team or user_team.team_type != 'ASSEMBLY':
+            return False
+        
+        # Uçak nesnesi için, sadece kendi takımının uçaklarını ve atanmamış uçakları görebilir
+        if isinstance(obj, Aircraft):
+            return obj.assembly_team is None or obj.assembly_team == user_team
+        
+        return True
 
 # Takım kontrolü için middleware
 class TeamCheckMiddleware:

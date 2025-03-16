@@ -102,15 +102,24 @@
             <h2 class="section-title">Üretim İstatistikleri</h2>
         </div>
         <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-line"></i> 
-                        Son 30 Gün Üretim Grafiği
-                    </h5>
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-bottom-0 py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-chart-line text-primary me-2"></i> 
+                            Son 30 Gün Üretim Grafiği
+                        </h5>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="last7Days">Son 7 Gün</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary active" id="last30Days">Son 30 Gün</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="allTime">Tüm Zamanlar</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <canvas id="productionChart" height="100"></canvas>
+                <div class="card-body p-4">
+                    <div style="height: 350px;">
+                        <canvas id="productionChart"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
@@ -299,47 +308,303 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Üretim grafiği
     const ctx = document.getElementById('productionChart');
     if (ctx) {
         const productionData = {{ daily_production|safe }};
+        console.log("Production Data:", productionData); // Debug data
         
-        new Chart(ctx, {
+        // Format dates for better display
+        const formattedDates = productionData.map(item => {
+            const date = new Date(item.created_at__date + 'T00:00:00'); // Add time to ensure proper parsing
+            return date.toLocaleDateString('tr-TR', {day: 'numeric', month: 'short'});
+        });
+        
+        // Create gradient for background
+        const ctx2d = ctx.getContext('2d');
+        const gradient = ctx2d.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(0, 123, 255, 0.4)');
+        gradient.addColorStop(1, 'rgba(0, 123, 255, 0.0)');
+        
+        // Register Chart.js plugins
+        Chart.register(ChartDataLabels);
+        
+        // Create the chart with enhanced styling
+        const chart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: productionData.map(item => new Date(item.created_at__date).toLocaleDateString('tr-TR')),
+                labels: formattedDates,
                 datasets: [{
                     label: 'Günlük Üretim',
                     data: productionData.map(item => item.total),
-                    borderColor: '#002169',
-                    backgroundColor: 'rgba(0, 33, 105, 0.1)',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    fill: true
+                    borderColor: '#0d6efd',
+                    backgroundColor: gradient,
+                    borderWidth: 3,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#0d6efd',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointHoverBackgroundColor: '#0d6efd',
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 2
                 }]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'top'
+                        display: false // Hide default legend, we'll create our own
                     },
                     tooltip: {
                         mode: 'index',
-                        intersect: false
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleFont: {
+                            size: 16,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 14
+                        },
+                        padding: 15,
+                        cornerRadius: 6,
+                        displayColors: false,
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                const date = new Date(productionData[tooltipItems[0].dataIndex].created_at__date + 'T00:00:00');
+                                return date.toLocaleDateString('tr-TR', {
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric'
+                                });
+                            },
+                            label: function(context) {
+                                return `Üretim: ${context.raw} adet`;
+                            }
+                        }
+                    },
+                    datalabels: {
+                        display: function(context) {
+                            return context.dataset.data[context.dataIndex] > 0; // Only show labels for non-zero values
+                        },
+                        color: '#0d6efd',
+                        font: {
+                            weight: 'bold'
+                        },
+                        backgroundColor: 'white',
+                        borderRadius: 4,
+                        padding: 4
                     }
                 },
                 scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 12
+                            },
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    },
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            stepSize: 1
+                            stepSize: 1,
+                            font: {
+                                size: 12
+                            },
+                            callback: function(value) {
+                                return value + ' adet';
+                            }
+                        },
+                        grid: {
+                            borderDash: [5, 5]
                         }
                     }
+                },
+                interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                },
+                animation: {
+                    duration: 1000,
+                    easing: 'easeOutQuart'
                 }
             }
+        });
+        
+        // Create custom legend
+        const chartContainer = ctx.parentNode.parentNode;
+        
+        // Create legend container
+        const legendContainer = document.createElement('div');
+        legendContainer.className = 'custom-legend d-flex justify-content-center mb-4';
+        legendContainer.style.marginTop = '20px';
+        
+        // Create legend item
+        const legendItem = document.createElement('div');
+        legendItem.className = 'custom-legend-item d-flex align-items-center px-3 py-2';
+        legendItem.style.cursor = 'pointer';
+        legendItem.style.borderRadius = '6px';
+        legendItem.style.backgroundColor = 'rgba(13, 110, 253, 0.1)';
+        legendItem.style.marginRight = '10px';
+        legendItem.style.transition = 'all 0.2s ease';
+        
+        // Create color box
+        const colorBox = document.createElement('span');
+        colorBox.className = 'color-box me-2';
+        colorBox.style.display = 'inline-block';
+        colorBox.style.width = '12px';
+        colorBox.style.height = '12px';
+        colorBox.style.backgroundColor = '#0d6efd';
+        colorBox.style.borderRadius = '50%';
+        
+        // Create label
+        const label = document.createElement('span');
+        label.textContent = 'Günlük Üretim';
+        label.style.fontWeight = 'bold';
+        
+        // Add elements to legend item
+        legendItem.appendChild(colorBox);
+        legendItem.appendChild(label);
+        
+        // Add legend item to container
+        legendContainer.appendChild(legendItem);
+        
+        // Insert legend before chart
+        chartContainer.insertBefore(legendContainer, chartContainer.firstChild);
+        
+        // Add click event to legend item
+        let isVisible = true;
+        legendItem.addEventListener('click', function() {
+            isVisible = !isVisible;
+            
+            // Update dataset visibility
+            chart.data.datasets[0].hidden = !isVisible;
+            chart.update();
+            
+            // Update legend item appearance
+            if (isVisible) {
+                legendItem.style.backgroundColor = 'rgba(13, 110, 253, 0.1)';
+                legendItem.style.color = '#000';
+                colorBox.style.backgroundColor = '#0d6efd';
+            } else {
+                legendItem.style.backgroundColor = 'rgba(200, 200, 200, 0.2)';
+                legendItem.style.color = '#888';
+                colorBox.style.backgroundColor = '#aaa';
+            }
+        });
+        
+        // Add chart title and description
+        const chartInfo = document.createElement('div');
+        chartInfo.className = 'chart-info mt-4';
+        chartInfo.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h6 class="mb-0 text-muted">Toplam Üretim</h6>
+                    <h3 class="mb-0">${productionData.reduce((sum, item) => sum + item.total, 0)} adet</h3>
+                </div>
+                <div>
+                    <h6 class="mb-0 text-muted">Ortalama Günlük Üretim</h6>
+                    <h3 class="mb-0">${(productionData.reduce((sum, item) => sum + item.total, 0) / productionData.filter(item => item.total > 0).length || 0).toFixed(1)} adet</h3>
+                </div>
+                <div>
+                    <h6 class="mb-0 text-muted">En Yüksek Üretim</h6>
+                    <h3 class="mb-0">${Math.max(...productionData.map(item => item.total))} adet</h3>
+                </div>
+            </div>
+        `;
+        chartContainer.appendChild(chartInfo);
+        
+        // Time period filter functionality
+        const last7DaysBtn = document.getElementById('last7Days');
+        const last30DaysBtn = document.getElementById('last30Days');
+        const allTimeBtn = document.getElementById('allTime');
+        
+        // Function to update active button
+        function setActiveButton(activeBtn) {
+            [last7DaysBtn, last30DaysBtn, allTimeBtn].forEach(btn => {
+                btn.classList.remove('active');
+            });
+            activeBtn.classList.add('active');
+        }
+        
+        // Function to filter data by days
+        function filterDataByDays(days) {
+            if (days === 0) { // All time
+                return {
+                    labels: formattedDates,
+                    data: productionData.map(item => item.total)
+                };
+            }
+            
+            const filteredData = productionData.slice(-days);
+            return {
+                labels: filteredData.map(item => {
+                    const date = new Date(item.created_at__date + 'T00:00:00');
+                    return date.toLocaleDateString('tr-TR', {day: 'numeric', month: 'short'});
+                }),
+                data: filteredData.map(item => item.total)
+            };
+        }
+        
+        // Function to update chart
+        function updateChart(days) {
+            const filteredData = filterDataByDays(days);
+            chart.data.labels = filteredData.labels;
+            chart.data.datasets[0].data = filteredData.data;
+            chart.update();
+            
+            // Update summary statistics
+            const dataToUse = days === 0 ? productionData : productionData.slice(-days);
+            const totalProduction = dataToUse.reduce((sum, item) => sum + item.total, 0);
+            const nonZeroDays = dataToUse.filter(item => item.total > 0).length;
+            const avgProduction = nonZeroDays ? (totalProduction / nonZeroDays).toFixed(1) : '0.0';
+            const maxProduction = Math.max(...dataToUse.map(item => item.total));
+            
+            chartInfo.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="mb-0 text-muted">Toplam Üretim</h6>
+                        <h3 class="mb-0">${totalProduction} adet</h3>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">Ortalama Günlük Üretim</h6>
+                        <h3 class="mb-0">${avgProduction} adet</h3>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 text-muted">En Yüksek Üretim</h6>
+                        <h3 class="mb-0">${maxProduction} adet</h3>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Event listeners for buttons
+        last7DaysBtn.addEventListener('click', function() {
+            setActiveButton(this);
+            updateChart(7);
+        });
+        
+        last30DaysBtn.addEventListener('click', function() {
+            setActiveButton(this);
+            updateChart(30);
+        });
+        
+        allTimeBtn.addEventListener('click', function() {
+            setActiveButton(this);
+            updateChart(0);
         });
     }
 });
