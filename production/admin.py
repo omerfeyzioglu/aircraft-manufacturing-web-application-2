@@ -27,6 +27,37 @@ class TeamMemberInline(admin.TabularInline):
     verbose_name = "Takım Üyesi"
     verbose_name_plural = "Takım Üyeleri"
     autocomplete_fields = ['user']
+    
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        """
+        Kullanıcı seçimini iyileştir - sadece henüz bir takıma atanmamış kullanıcıları göster
+        """
+        if db_field.name == "user":
+            # Mevcut takımın üyeleri ve henüz bir takıma atanmamış kullanıcıları göster
+            if request._obj is not None:
+                team_members = request._obj.members.all()
+                # Diğer takımlardaki kullanıcıları hariç tut
+                other_team_members = User.objects.filter(
+                    team_members__isnull=False
+                ).exclude(
+                    id__in=team_members.values_list('id', flat=True)
+                )
+                
+                # Mevcut takım üyeleri ve henüz bir takıma atanmamış kullanıcıları göster
+                kwargs["queryset"] = User.objects.exclude(
+                    id__in=other_team_members.values_list('id', flat=True)
+                )
+            else:
+                # Yeni takım oluşturulurken sadece henüz bir takıma atanmamış kullanıcıları göster
+                kwargs["queryset"] = User.objects.filter(team_members__isnull=True)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    
+    def get_formset(self, request, obj=None, **kwargs):
+        """
+        Mevcut takım nesnesini request'e ekle
+        """
+        request._obj = obj
+        return super().get_formset(request, obj, **kwargs)
 
 @admin.register(Team)
 class TeamAdmin(admin.ModelAdmin):
@@ -44,6 +75,28 @@ class TeamAdmin(admin.ModelAdmin):
         total = Production.objects.filter(team=obj).aggregate(Sum('quantity'))
         return total['quantity__sum'] or 0
     get_total_production.short_description = 'Toplam Üretim'
+    
+    def save_model(self, request, obj, form, change):
+        """
+        Takım kaydedilirken clean metodunu atlayarak doğrudan kaydet
+        """
+        # Normalde clean metodu çağrılır, ancak burada atlıyoruz
+        obj.save(force_insert=not change)
+    
+    def save_related(self, request, form, formsets, change):
+        """
+        Takım üyelerinin düzgün bir şekilde kaydedilmesini sağlar.
+        """
+        super().save_related(request, form, formsets, change)
+        # Formset verilerini işle ve members ilişkisini güncelle
+        for formset in formsets:
+            if formset.model == Team.members.through:
+                # Yeni üyeleri ekle (mevcut üyeleri silmeden)
+                for inline_form in formset.forms:
+                    if inline_form.cleaned_data and not inline_form.cleaned_data.get('DELETE', False):
+                        user = inline_form.cleaned_data.get('user')
+                        if user and user not in form.instance.members.all():
+                            form.instance.members.add(user)
 
 class LowStockPartFilter(admin.SimpleListFilter):
     title = 'Stok Durumu'

@@ -34,6 +34,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'production.views.TeamCheckMiddleware',  # Takım kontrolü için middleware
 ]
 
 ROOT_URLCONF = 'baykar.urls'
