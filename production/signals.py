@@ -45,9 +45,9 @@ def update_part_stock(sender, instance, created, **kwargs):
         instance.part.save()
 
 @receiver(post_save, sender=Aircraft)
-def notify_completion(sender, instance, **kwargs):
+def notify_completion(sender, instance, created, **kwargs):
     """Uçak üretimi tamamlandığında bildirim gönder"""
-    if instance.completed_at and instance.completed_at != instance._loaded_values.get('completed_at'):
+    if instance.completed_at and hasattr(instance, '_loaded_values') and instance.completed_at != instance._loaded_values.get('completed_at'):
         subject = f'Uçak Üretimi Tamamlandı: {instance.get_aircraft_type_display()}'
         message = f'''
         {instance.get_aircraft_type_display()} üretimi başarıyla tamamlandı.

@@ -20,4 +20,5 @@ urlpatterns = [
     path('add-production/', views.add_production, name='add_production'),
     path('aircraft/<int:aircraft_id>/required-parts/', views.get_required_parts, name='get_required_parts'),
     path('add-aircraft-part/', views.add_aircraft_part, name='add_aircraft_part'),
+    path('aircraft/<int:pk>/claim/', views.claim_aircraft, name='claim_aircraft'),
 ] 

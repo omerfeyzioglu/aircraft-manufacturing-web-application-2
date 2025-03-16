@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import F, Sum, Count, Q
@@ -19,6 +19,10 @@ from django.db.models.functions import TruncDate
 import json
 from rest_framework.permissions import IsAuthenticated
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter, OpenApiExample
+from django.template.response import TemplateResponse
+from django.contrib import admin
+from django.contrib.auth import login as auth_login
+from django.contrib.auth.views import LoginView
 
 # Template views
 @login_required
@@ -119,7 +123,7 @@ def parts_list(request):
 @login_required
 def teams_list(request):
     teams = Team.objects.annotate(
-        member_count=Count('members')
+        members_count=Count('members')
     )
     
     # Filtreleme
@@ -152,9 +156,9 @@ def aircraft_list(request):
     if assembly_team:
         aircraft = aircraft.filter(assembly_team_id=assembly_team)
     
-    # Montaj takımı sadece kendi uçaklarını görebilir
+    # Montaj takımı kendi uçaklarını ve henüz bir takıma atanmamış uçakları görebilir
     if user_team and user_team.team_type == 'ASSEMBLY':
-        aircraft = aircraft.filter(assembly_team=user_team)
+        aircraft = aircraft.filter(Q(assembly_team=user_team) | Q(assembly_team__isnull=True))
     
     # Calculate completion percentage for each aircraft
     for a in aircraft:
@@ -176,6 +180,55 @@ def add_production(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request method'}, status=400)
     
+    # Süper kullanıcılar için kontrol yapma
+    if request.user.is_superuser:
+        part_id = request.POST.get('part')
+        quantity = request.POST.get('quantity')
+        team_id = request.POST.get('team')
+        
+        try:
+            part = Part.objects.get(id=part_id)
+            team = Team.objects.get(id=team_id)
+            quantity = int(quantity)
+            
+            if quantity <= 0:
+                return JsonResponse({'error': 'Quantity must be positive'}, status=400)
+            
+            # Montaj takımları parça üretemez
+            if team.team_type == 'ASSEMBLY':
+                return JsonResponse({'error': 'Assembly teams cannot produce parts'}, status=403)
+            
+            # Check if team has members
+            if team.members.count() == 0:
+                return JsonResponse({'error': 'Team has no members. Please add members to the team.'}, status=403)
+            
+            # Takım tipi ve parça tipinin uyumlu olması gerekir
+            if team.team_type != part.team_type:
+                return JsonResponse({'error': f'{team.get_team_type_display()} team cannot produce {part.get_team_type_display()} parts'}, status=403)
+            
+            # Create production record
+            production = Production.objects.create(
+                team=team,
+                part=part,
+                quantity=quantity,
+                created_by=request.user
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Successfully produced {quantity} {part.name}',
+                'new_stock': part.stock
+            })
+            
+        except Part.DoesNotExist:
+            return JsonResponse({'error': 'Part not found'}, status=404)
+        except Team.DoesNotExist:
+            return JsonResponse({'error': 'Team not found'}, status=404)
+        except ValueError:
+            return JsonResponse({'error': 'Invalid quantity'}, status=400)
+        except ValidationError as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    
     # Check if user is in a team
     user_team = request.user.team_members.first()
     if not user_team:
@@ -184,6 +237,10 @@ def add_production(request):
     # Assembly teams cannot produce parts
     if user_team.team_type == 'ASSEMBLY':
         return JsonResponse({'error': 'Assembly teams cannot produce parts'}, status=403)
+    
+    # Check if team has members
+    if user_team.members.count() == 0:
+        return JsonResponse({'error': 'Assembly team has no members. Please add members to the team.'}, status=403)
     
     part_id = request.POST.get('part')
     quantity = request.POST.get('quantity')
@@ -229,6 +286,36 @@ def add_aircraft_part(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request method'}, status=400)
     
+    # Süper kullanıcılar için kontrol yapma
+    if request.user.is_superuser:
+        aircraft_id = request.POST.get('aircraft')
+        part_id = request.POST.get('part')
+        
+        try:
+            aircraft = Aircraft.objects.get(id=aircraft_id)
+            part = Part.objects.get(id=part_id)
+            
+            # Add part using the model method which includes validation
+            try:
+                aircraft_part = aircraft.add_part(part, request.user)
+                
+                # Check if aircraft is now complete
+                is_complete = aircraft.is_complete
+                missing_parts = aircraft.get_missing_parts()
+                
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Successfully added {part.name} to aircraft',
+                    'is_complete': is_complete,
+                    'missing_parts': missing_parts
+                })
+                
+            except ValidationError as e:
+                return JsonResponse({'error': str(e)}, status=400)
+            
+        except (Aircraft.DoesNotExist, Part.DoesNotExist) as e:
+            return JsonResponse({'error': str(e)}, status=400)
+    
     # Check if user is in an assembly team
     user_team = request.user.team_members.first()
     if not user_team:
@@ -236,6 +323,10 @@ def add_aircraft_part(request):
     
     if user_team.team_type != 'ASSEMBLY':
         return JsonResponse({'error': 'Only assembly teams can add parts to aircraft'}, status=403)
+    
+    # Check if team has members
+    if user_team.members.count() == 0:
+        return JsonResponse({'error': 'Assembly team has no members. Please add members to the team.'}, status=403)
     
     aircraft_id = request.POST.get('aircraft')
     part_id = request.POST.get('part')
@@ -368,31 +459,59 @@ class PartViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         """
-        Parçaları filtreler.
-        
-        Takım tipi, uçak tipi ve stok durumuna göre filtreleme yapar.
+        Kullanıcının takımına göre parçaları filtreler.
+        Montaj takımı üyeleri tüm parçaları görebilir.
+        Diğer takım üyeleri sadece kendi takım tiplerine ait parçaları görebilir.
+        Süper kullanıcı tüm parçaları görebilir.
         """
         queryset = Part.objects.all()
         
-        # Apply filters
+        # Takım tipine göre filtrele
         team_type = self.request.query_params.get('team_type')
-        aircraft_type = self.request.query_params.get('aircraft_type')
-        stock_status = self.request.query_params.get('stock_status')
-        
         if team_type:
             queryset = queryset.filter(team_type=team_type)
         
+        # Uçak tipine göre filtrele
+        aircraft_type = self.request.query_params.get('aircraft_type')
         if aircraft_type:
             queryset = queryset.filter(aircraft_type=aircraft_type)
         
+        # Stok durumuna göre filtrele
+        stock_status = self.request.query_params.get('stock_status')
         if stock_status == 'low':
-            queryset = queryset.filter(stock__gt=0, stock__lte=F('minimum_stock'))
-        elif stock_status == 'out':
-            queryset = queryset.filter(stock=0)
+            queryset = queryset.filter(is_low_stock=True)
+        elif stock_status == 'ok':
+            queryset = queryset.filter(is_low_stock=False)
+        
+        # Süper kullanıcı ise tüm parçaları görebilir
+        if self.request.user.is_superuser:
+            return queryset
+            
+        # Kullanıcının takımına göre filtrele
+        user_team = Team.objects.filter(members=self.request.user).first()
+        if user_team and user_team.team_type != 'ASSEMBLY':
+            queryset = queryset.filter(team_type=user_team.team_type)
         
         return queryset
     
     def create(self, request, *args, **kwargs):
+        """
+        Parça oluşturma işlemini gerçekleştirir.
+        Süper kullanıcılar için takım kontrolü yapmaz.
+        """
+        # Süper kullanıcı her türlü parça ekleyebilir
+        if request.user.is_superuser:
+            # Auto-generate part name based on team type and aircraft type
+            team_type = request.data.get('team_type')
+            aircraft_type = request.data.get('aircraft_type')
+            
+            if team_type and aircraft_type:
+                # Create a temporary Part instance to get the expected name
+                temp_part = Part(team_type=team_type, aircraft_type=aircraft_type)
+                request.data['name'] = temp_part.expected_name
+            
+            return super().create(request, *args, **kwargs)
+        
         # Get user's team
         user_team = request.user.team_members.first()
         
@@ -403,17 +522,23 @@ class PartViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Check if user is staff or team type matches
-        if not request.user.is_staff and user_team.team_type != request.data.get('team_type'):
+        # Montaj takımları parça üretemez
+        if user_team.team_type == 'ASSEMBLY':
             return Response(
-                {'detail': 'Sadece kendi takım tipiniz için parça ekleyebilirsiniz.'},
+                {'detail': 'Montaj takımları parça üretemez.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Kullanıcı sadece kendi takım tipine uygun parça ekleyebilir
+        team_type = request.data.get('team_type')
+        if team_type != user_team.team_type:
+            return Response(
+                {'detail': f'Sadece kendi takım tipiniz ({user_team.get_team_type_display()}) için parça ekleyebilirsiniz.'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
         # Auto-generate part name based on team type and aircraft type
-        team_type = request.data.get('team_type')
         aircraft_type = request.data.get('aircraft_type')
-        
         if team_type and aircraft_type:
             # Create a temporary Part instance to get the expected name
             temp_part = Part(team_type=team_type, aircraft_type=aircraft_type)
@@ -422,6 +547,35 @@ class PartViewSet(viewsets.ModelViewSet):
         return super().create(request, *args, **kwargs)
     
     def update(self, request, *args, **kwargs):
+        """
+        Parça güncelleme işlemini gerçekleştirir.
+        Süper kullanıcı için izin kontrolü yapmaz.
+        """
+        # Süper kullanıcı için kontrol yapma
+        if request.user.is_superuser:
+            # Don't allow changing team_type or aircraft_type
+            instance = self.get_object()
+            if 'team_type' in request.data and request.data['team_type'] != instance.team_type:
+                return Response(
+                    {'detail': 'Parçanın takım tipini değiştiremezsiniz.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+                
+            if 'aircraft_type' in request.data and request.data['aircraft_type'] != instance.aircraft_type:
+                return Response(
+                    {'detail': 'Parçanın uçak tipini değiştiremezsiniz.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Don't allow changing name
+            if 'name' in request.data and request.data['name'] != instance.name:
+                return Response(
+                    {'detail': 'Parçanın adını değiştiremezsiniz.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            return super().update(request, *args, **kwargs)
+        
         # Get user's team
         user_team = request.user.team_members.first()
         
@@ -700,6 +854,13 @@ class TeamViewSet(viewsets.ModelViewSet):
         part_id = request.data.get('part')
         quantity = int(request.data.get('quantity', 1))
 
+        # Check if team has members
+        if team.members.count() == 0:
+            return Response(
+                {'detail': 'Takımda üye bulunmamaktadır. Takıma üye ekleyin.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         try:
             part = Part.objects.get(id=part_id)
             
@@ -802,14 +963,22 @@ class AircraftViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(completed_at__isnull=False)
             
         # Filter by assembly team
-        if not self.request.user.is_staff:
+        if not self.request.user.is_staff and not self.request.user.is_superuser:
             user_team = self.request.user.team_members.first()
             if user_team and user_team.team_type == 'ASSEMBLY':
-                queryset = queryset.filter(assembly_team=user_team)
+                queryset = queryset.filter(Q(assembly_team=user_team) | Q(assembly_team__isnull=True))
             
         return queryset
     
     def create(self, request, *args, **kwargs):
+        """
+        Uçak oluşturma işlemini gerçekleştirir.
+        Süper kullanıcılar için takım kontrolü yapmaz.
+        """
+        # Süper kullanıcı her türlü uçak ekleyebilir
+        if request.user.is_superuser:
+            return super().create(request, *args, **kwargs)
+            
         # Get user's team
         user_team = request.user.team_members.first()
         
@@ -824,6 +993,13 @@ class AircraftViewSet(viewsets.ModelViewSet):
         if user_team.team_type != 'ASSEMBLY' and not request.user.is_staff:
             return Response(
                 {'detail': 'Sadece montaj takımları uçak oluşturabilir.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Check if assembly team has members
+        if user_team.members.count() == 0:
+            return Response(
+                {'detail': 'Montaj takımında üye bulunmamaktadır. Takıma üye ekleyin.'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -849,6 +1025,13 @@ class AircraftViewSet(viewsets.ModelViewSet):
         if user_team.team_type != 'ASSEMBLY' and not request.user.is_staff:
             return Response(
                 {'detail': 'Sadece montaj takımları uçak silebilir.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Check if assembly team has members
+        if user_team and user_team.members.count() == 0:
+            return Response(
+                {'detail': 'Montaj takımında üye bulunmamaktadır. Takıma üye ekleyin.'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -906,6 +1089,13 @@ class AircraftViewSet(viewsets.ModelViewSet):
         if user_team.team_type != 'ASSEMBLY' and not request.user.is_staff:
             return Response(
                 {'detail': 'Sadece montaj takımları uçağa parça ekleyebilir.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Check if assembly team has members
+        if user_team.members.count() == 0:
+            return Response(
+                {'detail': 'Montaj takımında üye bulunmamaktadır. Takıma üye ekleyin.'},
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -972,6 +1162,13 @@ class AircraftViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
+        # Check if assembly team has members
+        if user_team.members.count() == 0:
+            return Response(
+                {'detail': 'Montaj takımında üye bulunmamaktadır. Takıma üye ekleyin.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         # Check if user's team is assigned to this aircraft
         if aircraft.assembly_team != user_team and not request.user.is_staff:
             return Response(
@@ -1019,7 +1216,7 @@ class AircraftViewSet(viewsets.ModelViewSet):
         
         # Get current parts
         current_parts = []
-        for aircraft_part in aircraft.aircraftpart_set.select_related('part', 'added_by').all():
+        for aircraft_part in aircraft.aircraft_parts.select_related('part', 'added_by').all():
             part = aircraft_part.part
             team_type = part.team_type
             
@@ -1062,7 +1259,7 @@ class AircraftViewSet(viewsets.ModelViewSet):
         
         # Get all parts added to this aircraft with timestamp and user info
         history = []
-        for aircraft_part in aircraft.aircraftpart_set.select_related('part', 'added_by').order_by('-added_at'):
+        for aircraft_part in aircraft.aircraft_parts.select_related('part', 'added_by').order_by('-added_at'):
             part = aircraft_part.part
             history.append({
                 'part_id': part.id,
@@ -1118,4 +1315,256 @@ class AircraftViewSet(viewsets.ModelViewSet):
                 filtered_parts.append(part)
         
         serializer = PartSerializer(filtered_parts, many=True)
-        return Response({'parts': serializer.data}) 
+        return Response({'parts': serializer.data})
+
+@login_required
+def dashboard(request):
+    """Ana dashboard görünümü."""
+    user_team = Team.objects.filter(members=request.user).first()
+    
+    # Kullanıcı süper kullanıcı değilse ve takıma atanmamışsa uyarı göster
+    if not request.user.is_superuser and not user_team:
+        messages.warning(
+            request, 
+            '<div style="color: red; font-weight: bold; font-size: 16px; text-align: center; padding: 10px; border: 2px solid red; border-radius: 5px; background-color: #ffeeee;">'
+            '<i class="fas fa-exclamation-triangle"></i> '
+            'Herhangi bir takıma üye değilsiniz. Lütfen admin ile iletişime geçiniz.'
+            '</div>'
+        )
+    
+    # Kullanıcının takımına göre verileri filtrele
+    context = {
+        'user_team': user_team,
+        'total_parts': Part.objects.count(),
+        'total_aircraft': Aircraft.objects.count(),
+        'completed_aircraft': Aircraft.objects.filter(is_complete=True).count(),
+        'low_stock_parts': Part.objects.filter(is_low_stock=True).count(),
+    }
+    
+    if user_team:
+        if user_team.team_type == 'ASSEMBLY':
+            # Montaj takımı için uçak verileri
+            team_aircraft = Aircraft.objects.filter(assembly_team=user_team)
+            unassigned_aircraft = Aircraft.objects.filter(assembly_team__isnull=True)
+            
+            context.update({
+                'team_aircraft': team_aircraft.count(),
+                'team_completed_aircraft': team_aircraft.filter(is_complete=True).count(),
+                'recent_aircraft': team_aircraft.order_by('-created_at')[:5],
+                'unassigned_aircraft_count': unassigned_aircraft.count(),
+                'recent_unassigned_aircraft': unassigned_aircraft.order_by('-created_at')[:5],
+            })
+        else:
+            # Üretim takımları için parça verileri
+            context.update({
+                'team_parts': Part.objects.filter(team_type=user_team.team_type).count(),
+                'team_production': Production.objects.filter(team=user_team).aggregate(
+                    total=Sum('quantity')
+                )['total'] or 0,
+                'recent_production': Production.objects.filter(
+                    team=user_team
+                ).order_by('-created_at')[:5],
+            })
+    
+    return render(request, 'production/dashboard.html', context)
+
+@login_required
+def part_list(request):
+    """Parça listesi görünümü."""
+    # Kullanıcı süper kullanıcı değilse ve takıma atanmamışsa uyarı göster
+    user_team = Team.objects.filter(members=request.user).first()
+    if not request.user.is_superuser and not user_team:
+        messages.warning(
+            request, 
+            '<div style="color: red; font-weight: bold; font-size: 16px; text-align: center; padding: 10px; border: 2px solid red; border-radius: 5px; background-color: #ffeeee;">'
+            '<i class="fas fa-exclamation-triangle"></i> '
+            'Herhangi bir takıma üye değilsiniz. Lütfen admin ile iletişime geçiniz.'
+            '</div>'
+        )
+    
+    # Kullanıcının takımına göre parçaları filtrele (süper kullanıcı için tüm parçalar)
+    if not request.user.is_superuser and user_team and user_team.team_type != 'ASSEMBLY':
+        parts = Part.objects.filter(team_type=user_team.team_type)
+    else:
+        parts = Part.objects.all()
+    
+    context = {
+        'parts': parts,
+        'user_team': user_team,
+    }
+    return render(request, 'production/part_list.html', context)
+
+@login_required
+def aircraft_detail(request, pk):
+    """Uçak detay görünümü."""
+    aircraft = get_object_or_404(Aircraft, pk=pk)
+    
+    # Kullanıcı süper kullanıcı değilse ve takıma atanmamışsa uyarı göster
+    user_team = Team.objects.filter(members=request.user).first()
+    if not request.user.is_superuser and not user_team:
+        messages.warning(
+            request, 
+            '<div style="color: red; font-weight: bold; font-size: 16px; text-align: center; padding: 10px; border: 2px solid red; border-radius: 5px; background-color: #ffeeee;">'
+            '<i class="fas fa-exclamation-triangle"></i> '
+            'Herhangi bir takıma üye değilsiniz. Lütfen admin ile iletişime geçiniz.'
+            '</div>'
+        )
+    
+    # Kullanıcının takımına göre erişimi kontrol et (süper kullanıcı için erişim serbest)
+    if (not request.user.is_superuser and 
+        user_team and 
+        user_team.team_type == 'ASSEMBLY' and 
+        aircraft.assembly_team is not None and 
+        aircraft.assembly_team != user_team):
+        # Kullanıcı sadece kendi takımının uçaklarını ve atanmamış uçakları görebilir
+        return render(request, 'production/access_denied.html')
+    
+    context = {
+        'aircraft': aircraft,
+        'parts': AircraftPart.objects.filter(aircraft=aircraft),
+        'missing_parts': aircraft.get_missing_parts(),
+        'user_team': user_team,
+    }
+    return render(request, 'production/aircraft_detail.html', context)
+
+class IsTeamMemberOrReadOnly(permissions.BasePermission):
+    """
+    Takım üyelerine yazma izni, diğerlerine sadece okuma izni veren özel izin sınıfı.
+    """
+    def has_permission(self, request, view):
+        # GET, HEAD, OPTIONS isteklerine izin ver
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        
+        # Süper kullanıcıya her zaman izin ver
+        if request.user.is_superuser:
+            return True
+        
+        # Kullanıcının bir takımı var mı kontrol et
+        return Team.objects.filter(members=request.user).exists()
+    
+    def has_object_permission(self, request, view, obj):
+        # GET, HEAD, OPTIONS isteklerine izin ver
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        
+        # Süper kullanıcıya her zaman izin ver
+        if request.user.is_superuser:
+            return True
+        
+        # Takım nesnesi için, sadece takım üyeleri değişiklik yapabilir
+        if isinstance(obj, Team):
+            return obj.members.filter(id=request.user.id).exists()
+        
+        # Parça nesnesi için, sadece ilgili takım tipindeki takım üyeleri değişiklik yapabilir
+        if isinstance(obj, Part):
+            user_team = Team.objects.filter(members=request.user).first()
+            return user_team and user_team.team_type == obj.team_type
+        
+        # Uçak nesnesi için, sadece montaj takımı üyeleri değişiklik yapabilir
+        if isinstance(obj, Aircraft):
+            user_team = Team.objects.filter(members=request.user).first()
+            return user_team and user_team.team_type == 'ASSEMBLY' and obj.assembly_team == user_team
+        
+        # Üretim nesnesi için, sadece ilgili takım üyeleri değişiklik yapabilir
+        if isinstance(obj, Production):
+            return obj.team.members.filter(id=request.user.id).exists()
+        
+        # AircraftPart nesnesi için, sadece montaj takımı üyeleri değişiklik yapabilir
+        if isinstance(obj, AircraftPart):
+            user_team = Team.objects.filter(members=request.user).first()
+            return user_team and user_team.team_type == 'ASSEMBLY' and obj.aircraft.assembly_team == user_team
+        
+        return False 
+
+# Takım kontrolü için middleware
+class TeamCheckMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        
+        # Sadece oturum açmış kullanıcılar için ve sadece HTML yanıtları için
+        if (request.user.is_authenticated and 
+            not request.user.is_superuser and 
+            isinstance(response, TemplateResponse)):
+            
+            # Kullanıcının bir takımı var mı kontrol et
+            user_team = Team.objects.filter(members=request.user).first()
+            if not user_team:
+                # Uyarı mesajı ekle
+                messages.warning(
+                    request, 
+                    '<div style="color: red; font-weight: bold; font-size: 16px; text-align: center; padding: 10px; border: 2px solid red; border-radius: 5px; background-color: #ffeeee;">'
+                    '<i class="fas fa-exclamation-triangle"></i> '
+                    'Herhangi bir takıma üye değilsiniz. Lütfen admin ile iletişime geçiniz.'
+                    '</div>'
+                )
+        
+        return response 
+
+class CustomLoginView(LoginView):
+    """
+    Takıma atanmamış kullanıcıların girişini engelleyen özel login view.
+    """
+    template_name = 'login.html'
+
+    def form_valid(self, form):
+        # Kullanıcı doğrulandı, giriş yapılmadan önce takım üyeliğini kontrol et
+        user = form.get_user()
+        
+        # Superuser ise direkt giriş yap
+        if user.is_superuser:
+            return super().form_valid(form)
+        
+        # Kullanıcının bir takımı var mı kontrol et
+        user_team = Team.objects.filter(members=user).first()
+        if not user_team:
+            # Takım bulunamadıysa, hata mesajı göster ve giriş işlemini reddet
+            messages.error(
+                self.request,
+                '<div style="color: red; font-weight: bold; font-size: 18px; text-align: center; padding: 10px; border: 2px solid red; border-radius: 5px; background-color: #ffeeee;">'
+                '<i class="fas fa-exclamation-triangle"></i> '
+                'Herhangi bir takıma üye değilsiniz. Sisteme giriş yapamazsınız. '
+                'Lütfen sistem yöneticisi ile iletişime geçiniz.'
+                '</div>'
+            )
+            return self.form_invalid(form)
+        
+        # Takım üyeliği varsa normal giriş işlemine devam et
+        return super().form_valid(form) 
+
+@login_required
+def claim_aircraft(request, pk):
+    """Atanmamış uçağı takıma alma."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+    
+    aircraft = get_object_or_404(Aircraft, pk=pk)
+    
+    # Uçak zaten bir takıma atanmışsa hata ver
+    if aircraft.assembly_team is not None:
+        return JsonResponse({'error': 'Bu uçak zaten bir takıma atanmış.'}, status=400)
+    
+    # Kullanıcının takımını kontrol et
+    user_team = request.user.team_members.first()
+    if not user_team:
+        return JsonResponse({'error': 'Kullanıcı bir takıma atanmamış.'}, status=403)
+    
+    # Sadece montaj takımları uçak alabilir
+    if user_team.team_type != 'ASSEMBLY':
+        return JsonResponse({'error': 'Sadece montaj takımları uçak alabilir.'}, status=403)
+    
+    # Takımda üye var mı kontrol et
+    if user_team.members.count() == 0:
+        return JsonResponse({'error': 'Takımda üye bulunmamaktadır. Takıma üye ekleyin.'}, status=403)
+    
+    # Uçağı takıma ata
+    aircraft.assembly_team = user_team
+    aircraft.save()
+    
+    return JsonResponse({
+        'success': True,
+        'message': f'{aircraft.get_aircraft_type_display()} uçağı takımınıza başarıyla atandı.'
+    }) 
