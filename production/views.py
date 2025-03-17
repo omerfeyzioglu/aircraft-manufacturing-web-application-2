@@ -24,6 +24,7 @@ from django.contrib import admin
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.views import LoginView
 from django.core.serializers.json import DjangoJSONEncoder
+from django.contrib.auth import authenticate
 
 # Template views
 @login_required
@@ -1574,26 +1575,28 @@ class TeamCheckMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        # Giriş yapmış kullanıcılar için takım kontrolü yap
+        if request.user.is_authenticated and not request.user.is_superuser:
+            # Admin sayfasına erişim için kontrol yapma
+            if not request.path.startswith('/admin/'):
+                # Kullanıcının bir takımı var mı kontrol et
+                user_team = Team.objects.filter(members=request.user).first()
+                if not user_team:
+                    # Takımı olmayan kullanıcıyı çıkış yaptır
+                    from django.contrib.auth import logout
+                    from django.contrib import messages
+                    logout(request)
+                    messages.error(
+                        request, 
+                        'Sisteme giriş yapabilmek için bir takıma atanmış olmanız gerekmektedir. '
+                        'Lütfen sistem yöneticisi (admin) ile iletişime geçiniz.'
+                    )
+                    # Login sayfasına yönlendir
+                    from django.shortcuts import redirect
+                    return redirect('login')
+        
         response = self.get_response(request)
-        
-        # Sadece oturum açmış kullanıcılar için ve sadece HTML yanıtları için
-        if (request.user.is_authenticated and 
-            not request.user.is_superuser and 
-            isinstance(response, TemplateResponse)):
-            
-            # Kullanıcının bir takımı var mı kontrol et
-            user_team = Team.objects.filter(members=request.user).first()
-            if not user_team:
-                # Uyarı mesajı ekle
-                messages.warning(
-                    request, 
-                    '<div style="color: red; font-weight: bold; font-size: 16px; text-align: center; padding: 10px; border: 2px solid red; border-radius: 5px; background-color: #ffeeee;">'
-                    '<i class="fas fa-exclamation-triangle"></i> '
-                    'Herhangi bir takıma üye değilsiniz. Lütfen admin ile iletişime geçiniz.'
-                    '</div>'
-                )
-        
-        return response 
+        return response
 
 class CustomLoginView(LoginView):
     """
@@ -1602,29 +1605,52 @@ class CustomLoginView(LoginView):
     template_name = 'login.html'
 
     def form_valid(self, form):
-        # Kullanıcı doğrulandı, giriş yapılmadan önce takım üyeliğini kontrol et
+        """
+        Kullanıcı doğrulandı, giriş yapılmadan önce takım üyeliğini kontrol et.
+        Takımı olmayan kullanıcıların girişini engelle.
+        """
         user = form.get_user()
         
-        # Superuser ise direkt giriş yap
-        if user.is_superuser:
-            return super().form_valid(form)
+        # Eğer kullanıcı admin değilse takım kontrolü yap
+        if not user.is_superuser:
+            # Kullanıcının takımını kontrol et
+            if not Team.objects.filter(members=user).exists():
+                form.add_error(None, 'Sisteme giriş yapabilmek için bir takıma atanmış olmanız gerekmektedir. '
+                                   'Lütfen sistem yöneticisi (admin) ile iletişime geçiniz.')
+                return self.form_invalid(form)
         
-        # Kullanıcının bir takımı var mı kontrol et
-        user_team = Team.objects.filter(members=user).first()
-        if not user_team:
-            # Takım bulunamadıysa, hata mesajı göster ve giriş işlemini reddet
-            messages.error(
-                self.request,
-                '<div style="color: red; font-weight: bold; font-size: 18px; text-align: center; padding: 10px; border: 2px solid red; border-radius: 5px; background-color: #ffeeee;">'
-                '<i class="fas fa-exclamation-triangle"></i> '
-                'Herhangi bir takıma üye değilsiniz. Sisteme giriş yapamazsınız. '
-                'Lütfen sistem yöneticisi ile iletişime geçiniz.'
-                '</div>'
-            )
-            return self.form_invalid(form)
+        # Eğer buraya kadar geldiyse, ya admin ya da takımı olan bir kullanıcı
+        return super().form_valid(form)
+
+    def get_form(self, form_class=None):
+        """
+        Form oluşturulurken kullanıcı kontrolü yap.
+        """
+        form = super().get_form(form_class)
         
-        # Takım üyeliği varsa normal giriş işlemine devam et
-        return super().form_valid(form) 
+        # Eğer kullanıcı zaten giriş yapmışsa ve takımı yoksa, giriş yapmasını engelle
+        if self.request.user.is_authenticated and not self.request.user.is_superuser:
+            if not Team.objects.filter(members=self.request.user).exists():
+                form.add_error(None, 'Sisteme giriş yapabilmek için bir takıma atanmış olmanız gerekmektedir. '
+                                   'Lütfen sistem yöneticisi (admin) ile iletişime geçiniz.')
+                return form
+        
+        return form
+
+    def dispatch(self, request, *args, **kwargs):
+        """
+        Her istek öncesi kullanıcı kontrolü yap.
+        """
+        # Eğer kullanıcı zaten giriş yapmışsa ve takımı yoksa, çıkış yaptır
+        if request.user.is_authenticated and not request.user.is_superuser:
+            if not Team.objects.filter(members=request.user).exists():
+                from django.contrib.auth import logout
+                logout(request)
+                messages.error(request, 'Sisteme giriş yapabilmek için bir takıma atanmış olmanız gerekmektedir. '
+                                     'Lütfen sistem yöneticisi (admin) ile iletişime geçiniz.')
+                return HttpResponseRedirect(self.get_login_url())
+        
+        return super().dispatch(request, *args, **kwargs)
 
 @login_required
 def claim_aircraft(request, pk):

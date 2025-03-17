@@ -4,7 +4,7 @@ from django.contrib.auth import views as auth_views
 from django.views.decorators.http import require_http_methods
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
-from production.views import PartViewSet, TeamViewSet, AircraftViewSet
+from production.views import PartViewSet, TeamViewSet, AircraftViewSet, CustomLoginView
 from production.urls import router as production_router
 from django.conf import settings
 from django.conf.urls.static import static
@@ -18,7 +18,7 @@ router.register(r'aircraft', AircraftViewSet)
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('production.urls')),
-    path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
+    path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='login', http_method_names=['get', 'post']), name='logout'),
     path('aircraft/', include('aircraft_factory.urls')),
     

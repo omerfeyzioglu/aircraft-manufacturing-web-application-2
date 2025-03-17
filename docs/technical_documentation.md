@@ -6,11 +6,10 @@ Bu dokümantasyon, Baykar Hava Aracı Üretim Takip Sistemi'nin teknik detaylar�
 
 - [Sistem Mimarisi](#sistem-mimarisi)
 - [Veri Modelleri ve İlişkiler](#veri-modelleri-ve-i̇lişkiler)
+- [Yetkilendirme ve Güvenlik](#yetkilendirme-ve-güvenlik)
 - [API Referansı](#api-referansı)
 - [İş Mantığı ve Validasyonlar](#i̇ş-mantığı-ve-validasyonlar)
 - [Frontend Yapısı](#frontend-yapısı)
-- [Çoklu Dil Desteği](#çoklu-dil-desteği)
-- [Güvenlik Uygulamaları](#güvenlik-uygulamaları)
 - [Performans Optimizasyonları](#performans-optimizasyonları)
 - [Test Stratejisi](#test-stratejisi)
 - [Deployment Rehberi](#deployment-rehberi)
@@ -25,7 +24,7 @@ Baykar Hava Aracı Üretim Takip Sistemi, Django web framework'ü üzerine inşa
 1. **Django Core**: Temel web framework, URL yönlendirme, şablon işleme
 2. **Django ORM**: Veritabanı etkileşimi ve model yönetimi
 3. **Django REST Framework**: API geliştirme ve dokümantasyon
-4. **PostgreSQL**: İlişkisel veritabanı yönetim sistemi
+4. **PostgreSQL/SQLite**: İlişkisel veritabanı yönetim sistemi
 
 ### Frontend Bileşenleri
 
@@ -33,17 +32,18 @@ Baykar Hava Aracı Üretim Takip Sistemi, Django web framework'ü üzerine inşa
 2. **Bootstrap 5**: Responsive tasarım framework'ü
 3. **JavaScript/jQuery**: İstemci tarafı etkileşimler
 4. **AJAX**: Asenkron veri alışverişi
-5. **DataTables**: Veri tabloları ve filtreleme
-6. **Chart.js**: Veri görselleştirme
+5. **Chart.js**: Veri görselleştirme
+6. **Swiper.js**: Slider ve geçiş efektleri
 
 ### Sistem Akışı
 
 1. İstek Django URL yönlendiricisi tarafından karşılanır
-2. İlgili view fonksiyonu veya ViewSet çağrılır
-3. View, gerekli modelleri ve verileri işler
-4. İşlenen veriler şablona aktarılır veya API yanıtı olarak döndürülür
-5. Şablon render edilir veya JSON yanıtı oluşturulur
-6. Yanıt istemciye gönderilir
+2. TeamCheckMiddleware tüm istekleri kontrol eder ve yetkisiz kullanıcıların erişimini engeller
+3. İlgili view fonksiyonu veya ViewSet çağrılır
+4. View, gerekli modelleri ve verileri işler
+5. İşlenen veriler şablona aktarılır veya API yanıtı olarak döndürülür
+6. Şablon render edilir veya JSON yanıtı oluşturulur
+7. Yanıt istemciye gönderilir
 
 ## Veri Modelleri ve İlişkiler
 
@@ -60,23 +60,23 @@ AIRCRAFT_TYPES = [
 
 # Takım tipleri
 TEAM_TYPES = [
-    ('AVIONICS', 'Aviyonik'),
     ('BODY', 'Gövde'),
     ('WING', 'Kanat'),
     ('TAIL', 'Kuyruk'),
+    ('AVIONICS', 'Aviyonik'),
     ('ASSEMBLY', 'Montaj'),
 ]
 
 # Her uçak tipi için gerekli parça sayıları
 REQUIRED_PARTS = {
-    'TB2': {'AVIONICS': 5, 'BODY': 10, 'WING': 4, 'TAIL': 2},
-    'TB3': {'AVIONICS': 8, 'BODY': 15, 'WING': 6, 'TAIL': 3},
-    'AKINCI': {'AVIONICS': 12, 'BODY': 20, 'WING': 8, 'TAIL': 4},
-    'KIZILELMA': {'AVIONICS': 15, 'BODY': 25, 'WING': 10, 'TAIL': 5},
+    'TB2': {'AVIONICS': 1, 'BODY': 1, 'WING': 1, 'TAIL': 1},
+    'TB3': {'AVIONICS': 1, 'BODY': 1, 'WING': 1, 'TAIL': 1},
+    'AKINCI': {'AVIONICS': 1, 'BODY': 1, 'WING': 1, 'TAIL': 1},
+    'KIZILELMA': {'AVIONICS': 1, 'BODY': 1, 'WING': 1, 'TAIL': 1},
 }
 ```
 
-### Model Tanımları
+### Ana Modeller
 
 #### Team (Takım)
 
@@ -84,13 +84,13 @@ REQUIRED_PARTS = {
 class Team(models.Model):
     name = models.CharField(max_length=100, verbose_name='Takım Adı')
     team_type = models.CharField(max_length=20, choices=TEAM_TYPES, verbose_name='Takım Tipi')
-    members = models.ManyToManyField(User, related_name='team_members', verbose_name='Üyeler')
+    members = models.ManyToManyField(User, related_name='team_members', blank=True, verbose_name='Üyeler')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Oluşturulma Tarihi')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Güncellenme Tarihi')
     
     # Metodlar
     def can_produce_part(self, part):
-        """Takımın belirli bir parçayı üretip üretemeyeceğini kontrol eder."""
+        """Takımın belirli bir parçayı üretip üretemeyeceğini kontrol eder"""
         if self.team_type == 'ASSEMBLY':
             return False
         return self.team_type == part.team_type
@@ -101,23 +101,24 @@ class Team(models.Model):
 ```python
 class Part(models.Model):
     name = models.CharField(max_length=100, verbose_name='Parça Adı')
-    team_type = models.CharField(max_length=20, choices=TEAM_TYPES, verbose_name='Üretici Takım')
-    aircraft_type = models.CharField(max_length=10, choices=AIRCRAFT_TYPES, verbose_name='Uçak Tipi')
-    stock = models.PositiveIntegerField(default=0, verbose_name='Stok')
-    minimum_stock = models.PositiveIntegerField(default=5, verbose_name='Minimum Stok')
+    team_type = models.CharField(max_length=20, choices=TEAM_TYPES, verbose_name='Üretici Takım Tipi')
+    aircraft_type = models.CharField(max_length=20, choices=AIRCRAFT_TYPES, verbose_name='Hava Aracı Tipi')
+    stock = models.PositiveIntegerField(default=0, verbose_name='Stok Miktarı')
+    minimum_stock = models.PositiveIntegerField(default=5, verbose_name='Minimum Stok Miktarı')
+    is_low_stock = models.BooleanField(default=False, verbose_name='Düşük Stok')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Oluşturulma Tarihi')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Güncellenme Tarihi')
     
     # Metodlar
     def increase_stock(self, quantity):
-        """Stok miktarını artırır."""
+        """Stok miktarını artırır"""
         self.stock += quantity
         self.save()
         
     def decrease_stock(self, quantity):
-        """Stok miktarını azaltır."""
+        """Stok miktarını azaltır"""
         if self.stock < quantity:
-            raise ValidationError('Yetersiz stok.')
+            raise ValidationError("Stok miktarı yetersiz")
         self.stock -= quantity
         self.save()
 ```
@@ -126,388 +127,322 @@ class Part(models.Model):
 
 ```python
 class Aircraft(models.Model):
-    aircraft_type = models.CharField(max_length=10, choices=AIRCRAFT_TYPES, verbose_name='Uçak Tipi')
-    assembly_team = models.ForeignKey(Team, on_delete=models.SET_NULL, null=True, blank=True, 
-                                    limit_choices_to={'team_type': 'ASSEMBLY'}, 
-                                    related_name='assembled_aircrafts',
-                                    verbose_name='Montaj Takımı')
-    parts = models.ManyToManyField(Part, through='AircraftPart', verbose_name='Parçalar')
+    aircraft_type = models.CharField(max_length=20, choices=AIRCRAFT_TYPES, verbose_name='Hava Aracı Tipi')
+    assembly_team = models.ForeignKey(Team, on_delete=models.PROTECT, limit_choices_to={'team_type': 'ASSEMBLY'}, verbose_name='Montaj Takımı', null=True, blank=True)
+    parts = models.ManyToManyField(Part, through='AircraftPart', related_name='aircrafts', verbose_name='Parçalar')
+    is_complete = models.BooleanField(default=False, verbose_name='Tamamlandı mı?')
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Oluşturulma Tarihi')
     completed_at = models.DateTimeField(null=True, blank=True, verbose_name='Tamamlanma Tarihi')
+    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='created_aircrafts', verbose_name='Oluşturan', null=True, blank=True)
     
     # Metodlar
-    def get_missing_parts(self):
-        """Eksik parçaları takım tipine göre döndürür."""
-        required = REQUIRED_PARTS[self.aircraft_type]
-        current = {team_type: 0 for team_type in required}
+    def check_completion_status(self):
+        """Uçağın tamamlanma durumunu kontrol eder"""
+        required_parts = self.get_missing_parts()
         
-        for part in self.parts.all():
-            if part.team_type in current:
-                current[part.team_type] += 1
+        # Tüm gerekli parçalar eklenmiş mi kontrol et
+        is_all_parts_added = all(count == 0 for count in required_parts.values())
         
-        missing = {}
-        for team_type, required_count in required.items():
-            current_count = current[team_type]
-            if current_count < required_count:
-                missing[team_type] = required_count - current_count
+        # Eğer tüm parçalar eklenmiş ve uçak henüz tamamlanmamışsa
+        if is_all_parts_added and not self.is_complete:
+            self.is_complete = True
+            self.completed_at = timezone.now()
+            self.save()
         
-        return missing
+        return is_all_parts_added
 ```
 
-#### AircraftPart (Uçak Parçası)
+#### AircraftPart (Uçak Parça İlişkisi)
 
 ```python
 class AircraftPart(models.Model):
-    aircraft = models.ForeignKey(Aircraft, on_delete=models.CASCADE, verbose_name='Uçak')
-    part = models.ForeignKey(Part, on_delete=models.CASCADE, verbose_name='Parça')
+    aircraft = models.ForeignKey(Aircraft, on_delete=models.CASCADE, related_name='aircraft_parts', verbose_name='Hava Aracı')
+    part = models.ForeignKey(Part, on_delete=models.PROTECT, related_name='aircraft_parts', verbose_name='Parça')
     added_at = models.DateTimeField(auto_now_add=True, verbose_name='Eklenme Tarihi')
-    added_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name='Ekleyen')
+    added_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='added_parts', verbose_name='Ekleyen', null=True, blank=True)
     
-    # Metodlar
-    def clean(self):
-        """Parça ekleme validasyonları."""
-        if self.part.aircraft_type != self.aircraft.aircraft_type:
-            raise ValidationError('Bu parça bu uçak tipi için uygun değil.')
-        if self.part.stock <= 0:
-            raise ValidationError('Bu parçanın stokta yeterli miktarı yok.')
+    class Meta:
+        verbose_name = 'Hava Aracı Parçası'
+        verbose_name_plural = 'Hava Aracı Parçaları'
+        unique_together = ['aircraft', 'part']
 ```
 
 #### Production (Üretim)
 
 ```python
 class Production(models.Model):
-    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='productions', verbose_name='Üretici Takım')
-    part = models.ForeignKey(Part, on_delete=models.CASCADE, verbose_name='Üretilen Parça')
-    quantity = models.PositiveIntegerField(verbose_name='Miktar')
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Üretim Tarihi')
-    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, verbose_name='Üreten')
+    team = models.ForeignKey(Team, on_delete=models.PROTECT, related_name='productions', verbose_name='Üretici Takım')
+    part = models.ForeignKey(Part, on_delete=models.PROTECT, related_name='productions', verbose_name='Üretilen Parça')
+    quantity = models.PositiveIntegerField(default=1, verbose_name='Miktar')
+    created_by = models.ForeignKey(User, on_delete=models.PROTECT, related_name='productions', verbose_name='Oluşturan', null=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Oluşturulma Tarihi')
+```
+
+## Yetkilendirme ve Güvenlik
+
+Sistemin güvenliği, katmanlı bir yaklaşımla sağlanmaktadır:
+
+### CustomLoginView
+
+```python
+class CustomLoginView(LoginView):
+    """
+    Takıma atanmamış kullanıcıların girişini engelleyen özel login view.
+    """
+    template_name = 'login.html'
+
+    def form_valid(self, form):
+        """
+        Kullanıcı doğrulandı, giriş yapılmadan önce takım üyeliğini kontrol et.
+        Takımı olmayan kullanıcıların girişini engelle.
+        """
+        user = form.get_user()
+        
+        # Eğer kullanıcı admin değilse takım kontrolü yap
+        if not user.is_superuser:
+            # Kullanıcının takımını kontrol et
+            if not Team.objects.filter(members=user).exists():
+                form.add_error(None, 'Sisteme giriş yapabilmek için bir takıma atanmış olmanız gerekmektedir. '
+                                   'Lütfen sistem yöneticisi (admin) ile iletişime geçiniz.')
+                return self.form_invalid(form)
+        
+        # Eğer buraya kadar geldiyse, ya admin ya da takımı olan bir kullanıcı
+        return super().form_valid(form)
+        
+    def get_form(self, form_class=None):
+        """Form oluşturulurken kullanıcı kontrolü yap"""
+        form = super().get_form(form_class)
+        
+        # Eğer kullanıcı zaten giriş yapmışsa ve takımı yoksa, giriş yapmasını engelle
+        if self.request.user.is_authenticated and not self.request.user.is_superuser:
+            if not Team.objects.filter(members=self.request.user).exists():
+                form.add_error(None, 'Sisteme giriş yapabilmek için bir takıma atanmış olmanız gerekmektedir. '
+                                  'Lütfen sistem yöneticisi (admin) ile iletişime geçiniz.')
+                return form
+        
+        return form
+
+    def dispatch(self, request, *args, **kwargs):
+        """Her istek öncesi kullanıcı kontrolü yap"""
+        # Eğer kullanıcı zaten giriş yapmışsa ve takımı yoksa, çıkış yaptır
+        if request.user.is_authenticated and not request.user.is_superuser:
+            if not Team.objects.filter(members=request.user).exists():
+                from django.contrib.auth import logout
+                logout(request)
+                messages.error(request, 'Sisteme giriş yapabilmek için bir takıma atanmış olmanız gerekmektedir. '
+                                     'Lütfen sistem yöneticisi (admin) ile iletişime geçiniz.')
+                return HttpResponseRedirect(self.get_login_url())
+        
+        return super().dispatch(request, *args, **kwargs)
+```
+
+### TeamCheckMiddleware
+
+```python
+class TeamCheckMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Giriş yapmış kullanıcılar için takım kontrolü yap
+        if request.user.is_authenticated and not request.user.is_superuser:
+            # Admin sayfasına erişim için kontrol yapma
+            if not request.path.startswith('/admin/'):
+                # Kullanıcının bir takımı var mı kontrol et
+                user_team = Team.objects.filter(members=request.user).first()
+                if not user_team:
+                    # Takımı olmayan kullanıcıyı çıkış yaptır
+                    from django.contrib.auth import logout
+                    from django.contrib import messages
+                    logout(request)
+                    messages.error(
+                        request, 
+                        'Sisteme giriş yapabilmek için bir takıma atanmış olmanız gerekmektedir. '
+                        'Lütfen sistem yöneticisi (admin) ile iletişime geçiniz.'
+                    )
+                    # Login sayfasına yönlendir
+                    from django.shortcuts import redirect
+                    return redirect('login')
+        
+        response = self.get_response(request)
+        return response
+```
+
+### View Bazlı Yetkilendirme
+
+```python
+@login_required
+def aircraft_detail(request, pk):
+    """Uçak detay görünümü."""
+    # Sadece montaj takımı üyeleri ve süper kullanıcılar erişebilir
+    user_team = Team.objects.filter(members=request.user).first()
     
-    # Metodlar
-    def clean(self):
-        """Üretim validasyonları."""
-        if not self.team.can_produce_part(self.part):
-            raise ValidationError('Bu takım bu parçayı üretemez.')
-        if self.quantity <= 0:
-            raise ValidationError('Üretim miktarı pozitif olmalıdır.')
-```
-
-### Veri İlişkileri
-
-1. **User - Team**: Çoktan-çoğa ilişki (ManyToMany). Bir kullanıcı birden fazla takımda olabilir, bir takımda birden fazla kullanıcı olabilir.
-2. **Team - Production**: Birden-çoğa ilişki (ForeignKey). Bir takım birden fazla üretim yapabilir.
-3. **Part - Production**: Birden-çoğa ilişki (ForeignKey). Bir parça birden fazla üretimde kullanılabilir.
-4. **Aircraft - Part**: Çoktan-çoğa ilişki (ManyToMany), AircraftPart ara tablosu üzerinden. Bir uçakta birden fazla parça olabilir, bir parça birden fazla uçakta kullanılabilir (farklı stok birimleri).
-5. **Team - Aircraft**: Birden-çoğa ilişki (ForeignKey). Bir montaj takımı birden fazla uçak montajı yapabilir.
-
-## API Referansı
-
-### Kimlik Doğrulama
-
-API, oturum tabanlı kimlik doğrulama kullanmaktadır. API isteklerinde CSRF token gerekmektedir.
-
-### Endpoint'ler
-
-#### Parça API
-
-**Endpoint**: `/api/parts/`
-
-| Metod | Endpoint | Açıklama | Parametreler |
-|-------|----------|----------|--------------|
-| GET | `/api/parts/` | Parça listesi | `team_type`, `aircraft_type`, `stock_status` |
-| POST | `/api/parts/` | Yeni parça oluştur | `name`, `team_type`, `aircraft_type`, `stock`, `minimum_stock` |
-| GET | `/api/parts/{id}/` | Parça detayı | - |
-| PUT | `/api/parts/{id}/` | Parça güncelle | `stock`, `minimum_stock` |
-| DELETE | `/api/parts/{id}/` | Parça sil | - |
-
-#### Takım API
-
-**Endpoint**: `/api/teams/`
-
-| Metod | Endpoint | Açıklama | Parametreler |
-|-------|----------|----------|--------------|
-| GET | `/api/teams/` | Takım listesi | `team_type` |
-| POST | `/api/teams/` | Yeni takım oluştur | `name`, `team_type`, `members` |
-| GET | `/api/teams/{id}/` | Takım detayı | - |
-| PUT | `/api/teams/{id}/` | Takım güncelle | `name`, `members` |
-| DELETE | `/api/teams/{id}/` | Takım sil | - |
-| POST | `/api/teams/{id}/produce_part/` | Parça üret | `part`, `quantity` |
-| GET | `/api/teams/{id}/members/` | Takım üyeleri | - |
-| POST | `/api/teams/{id}/add_member/` | Üye ekle | `user` |
-| POST | `/api/teams/{id}/remove_member/` | Üye çıkar | `user` |
-
-#### Uçak API
-
-**Endpoint**: `/api/aircraft/`
-
-| Metod | Endpoint | Açıklama | Parametreler |
-|-------|----------|----------|--------------|
-| GET | `/api/aircraft/` | Uçak listesi | `aircraft_type`, `status`, `assembly_team` |
-| POST | `/api/aircraft/` | Yeni uçak oluştur | `aircraft_type`, `assembly_team` |
-| GET | `/api/aircraft/{id}/` | Uçak detayı | - |
-| PUT | `/api/aircraft/{id}/` | Uçak güncelle | `assembly_team` |
-| DELETE | `/api/aircraft/{id}/` | Uçak sil | - |
-| POST | `/api/aircraft/{id}/add_part/` | Parça ekle | `part` |
-| GET | `/api/aircraft/{id}/parts_summary/` | Parça özeti | - |
-
-### Örnek API Kullanımı
-
-#### Parça Üretimi
-
-```javascript
-// Parça üretimi için AJAX isteği
-$.ajax({
-    url: '/api/teams/1/produce_part/',
-    type: 'POST',
-    data: {
-        part: 5,
-        quantity: 10
-    },
-    success: function(response) {
-        console.log('Parça başarıyla üretildi.');
-        console.log('Yeni stok: ' + response.new_stock);
-    },
-    error: function(xhr) {
-        console.error('Hata: ' + xhr.responseJSON.detail);
+    # Süper kullanıcı değilse ve montaj takımında değilse erişimi engelle
+    if not request.user.is_superuser and (not user_team or user_team.team_type != 'ASSEMBLY'):
+        messages.error(
+            request, 
+            '<span style="color: red; font-weight: bold;">Bu sayfaya erişim yetkiniz bulunmamaktadır.</span>'
+        )
+        return redirect('production:home')
+    
+    aircraft = get_object_or_404(Aircraft, pk=pk)
+    
+    # Kullanıcının takımına göre erişimi kontrol et (süper kullanıcı için erişim serbest)
+    if (not request.user.is_superuser and 
+        user_team and 
+        aircraft.assembly_team is not None and 
+        aircraft.assembly_team != user_team):
+        # Kullanıcı sadece kendi takımının uçaklarını ve atanmamış uçakları görebilir
+        return render(request, 'production/access_denied.html')
+    
+    context = {
+        'aircraft': aircraft,
+        'parts': AircraftPart.objects.filter(aircraft=aircraft),
+        'missing_parts': aircraft.get_missing_parts(),
+        'user_team': user_team,
     }
-});
+    return render(request, 'production/aircraft_detail.html', context)
 ```
 
-#### Uçağa Parça Ekleme
+### API Yetkilendirme
 
-```javascript
-// Uçağa parça ekleme için AJAX isteği
-$.ajax({
-    url: '/api/aircraft/3/add_part/',
-    type: 'POST',
-    data: {
-        part: 8
-    },
-    success: function(response) {
-        console.log('Parça başarıyla eklendi.');
-        console.log('Tamamlanma durumu: ' + (response.is_complete ? 'Tamamlandı' : 'Devam ediyor'));
-        console.log('Eksik parçalar: ', response.missing_parts);
-    },
-    error: function(xhr) {
-        console.error('Hata: ' + xhr.responseJSON.detail);
-    }
-});
+```python
+class IsTeamMemberOrReadOnly(permissions.BasePermission):
+    """
+    Takım üyelerine yazma izni, diğerlerine sadece okuma izni veren özel izin sınıfı.
+    """
+    def has_permission(self, request, view):
+        # GET, HEAD, OPTIONS isteklerine izin ver
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        
+        # Süper kullanıcıya her zaman izin ver
+        if request.user.is_superuser:
+            return True
+        
+        # Kullanıcı giriş yapmış olmalı
+        return request.user.is_authenticated
+    
+    def has_object_permission(self, request, view, obj):
+        # GET, HEAD, OPTIONS isteklerine izin ver
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        
+        # Süper kullanıcıya her zaman izin ver
+        if request.user.is_superuser:
+            return True
 ```
-
-## İş Mantığı ve Validasyonlar
-
-### Parça Üretimi
-
-1. Sadece ilgili takım tipi kendi parçalarını üretebilir (Aviyonik takımı sadece aviyonik parçaları üretebilir)
-2. Montaj takımı parça üretemez
-3. Üretim miktarı pozitif olmalıdır
-4. Parça adı, takım tipi ve uçak tipine göre otomatik oluşturulur (örn. "TB2 Kanat")
-
-### Uçak Montajı
-
-1. Sadece montaj takımı uçak oluşturabilir
-2. Her uçak modeli için belirli sayıda ve tipte parça gereklidir
-3. Parçalar sadece uyumlu uçak modellerine eklenebilir (TB2 parçası sadece TB2 uçağına eklenebilir)
-4. Bir parça eklendiğinde stoktan düşer
-5. Tüm gerekli parçalar eklendiğinde uçak otomatik olarak tamamlanır
-
-### Stok Yönetimi
-
-1. Parça stoku minimum seviyenin altına düştüğünde uyarı verilir
-2. Stok yetersizse parça eklenemez
-3. Parça silindiğinde ilişkili üretim kayıtları da silinir
 
 ## Frontend Yapısı
 
-### Şablon Hiyerarşisi
+Sistemin frontend yapısı, aşağıdaki teknoloji ve bileşenlerden oluşmaktadır:
 
-```
-templates/
-├── base.html                # Ana şablon
-├── home.html                # Ana sayfa
-├── registration/            # Kimlik doğrulama şablonları
-│   ├── login.html           # Giriş sayfası
-│   └── password_change.html # Şifre değiştirme
-├── parts/                   # Parça şablonları
-│   └── list.html            # Parça listesi
-├── teams/                   # Takım şablonları
-│   └── list.html            # Takım listesi
-└── aircraft/                # Uçak şablonları
-    └── list.html            # Uçak listesi
-```
+### Kullanıcı Arayüzü
 
-### JavaScript Bileşenleri
+- **Base Template**: Tüm sayfaların temel şablonu (`base.html`)
+- **Login Sayfası**: Kullanıcı ve admin girişi için Swiper.js ile kaydırılabilir form (`login.html`)
+- **Dashboard**: Üretim ve stok durumunun genel görünümü (`home.html`)
+- **Parça Listesi**: Üretilen ve stokta olan parçaların listesi (`part_list.html`)
+- **Üretim Listesi**: Gerçekleştirilen üretimlerin listesi (`production_list.html`)
+- **Uçak Listesi**: Üretilen ve üretim aşamasındaki uçakların listesi (`aircraft_list.html`)
+- **Uçak Detay**: Uçak montaj durumu ve parça bilgileri (`aircraft_detail.html`)
 
-1. **DataTables**: Tablo görüntüleme, sıralama ve filtreleme
-2. **Chart.js**: Üretim istatistikleri ve stok durumu grafikleri
-3. **AJAX İstekleri**: Asenkron veri alışverişi
-4. **Form Validasyonu**: İstemci tarafı form doğrulama
-5. **Toastr**: Bildirimler ve uyarılar
-6. **Dil Değiştirme**: Çoklu dil desteği için JavaScript fonksiyonları
+### Arayüz Optimizasyonları
 
-### CSS Yapısı
+1. **Login Sayfası Optimizasyonları**:
+   - Video arka plan için ön yükleme ve otomatik geçiş
+   - Düşük bağlantı hızlarında arka plan resmi kullanma
+   - GPU hızlandırmalı animasyonlar (`will-change` özelliği)
+   - Slider geçişlerinde performans iyileştirmeleri
 
-1. **Bootstrap 5**: Temel stil ve grid sistemi
-2. **Custom CSS**: Özel stil tanımlamaları
-3. **Responsive Tasarım**: Farklı ekran boyutlarına uyum
-
-## Çoklu Dil Desteği
-
-Sistem, Türkçe ve İngilizce dil desteği sunmaktadır. Dil değiştirme işlemi JavaScript ile gerçekleştirilmektedir.
-
-### Dil Değiştirme Mekanizması
-
-1. Dil seçimi localStorage'da saklanır
-2. Sayfa yüklendiğinde mevcut dil ayarı kontrol edilir
-3. Dil değiştirme butonu tıklandığında tüm metin içerikleri güncellenir
-4. Dil değişikliği bildirim olarak gösterilir
-
-### Çeviri Sözlüğü
-
-```javascript
-const translations = {
-    'tr': {
-        // Navbar
-        'home': 'Ana Sayfa',
-        'teams': 'Takımlar',
-        'parts': 'Parçalar',
-        'aircraft': 'Uçaklar',
-        // ... diğer çeviriler
-    },
-    'en': {
-        // Navbar
-        'home': 'Home',
-        'teams': 'Teams',
-        'parts': 'Parts',
-        'aircraft': 'Aircraft',
-        // ... diğer çeviriler
-    }
-};
-```
-
-## Güvenlik Uygulamaları
-
-### Kimlik Doğrulama ve Yetkilendirme
-
-1. **Django Authentication**: Kullanıcı kimlik doğrulama
-2. **Oturum Yönetimi**: Güvenli oturum işlemleri
-3. **Rol Tabanlı Erişim Kontrolü**: Takım tipine göre yetkilendirme
-4. **CSRF Koruması**: Cross-Site Request Forgery koruması
-
-### Veri Validasyonu
-
-1. **Form Validasyonu**: Sunucu tarafı form doğrulama
-2. **Model Validasyonu**: Model seviyesinde veri doğrulama
-3. **API Validasyonu**: API isteklerinde veri doğrulama
-
-### Güvenli Kodlama Pratikleri
-
-1. **SQL Injection Koruması**: ORM kullanımı
-2. **XSS Koruması**: HTML escape ve güvenli şablon işleme
-3. **HTTPS Desteği**: Güvenli veri iletimi
+2. **Dashboard Optimizasyonları**:
+   - Grafik ve tabloların lazy loading ile yüklenmesi
+   - AJAX ile arka planda veri güncelleme
+   - Verilerin client tarafında önbelleklenmesi
 
 ## Performans Optimizasyonları
 
+Sistemin performansını artırmak için aşağıdaki stratejiler uygulanmıştır:
+
 ### Veritabanı Optimizasyonları
 
-1. **İndeksleme**: Sık sorgulanan alanlarda indeks kullanımı
-2. **Select Related**: İlişkili verileri tek sorguda çekme
-3. **Prefetch Related**: İlişkili verileri önceden yükleme
-4. **Bulk Operations**: Toplu veri işlemleri
+- **İlişkisel Sorgular**: `select_related` ve `prefetch_related` kullanımı
+- **Toplu Sorgular**: `bulk_create` ve `bulk_update` kullanımı
+- **İndexler**: Sık sorgulanan alanlarda indeks kullanımı
 
 ### Frontend Optimizasyonları
 
-1. **Lazy Loading**: Gerektiğinde veri yükleme
-2. **Pagination**: Büyük veri setlerinde sayfalama
-3. **Minification**: JS ve CSS dosyalarını küçültme
-4. **Caching**: Statik dosyaları önbellekleme
+- **Video Optimizasyonu**: Login sayfasındaki video için önbellek ve lazy loading
+- **CSS Optimizasyonu**: CSS'in kritik olmayan kısmının asenkron yüklenmesi
+- **JavaScript Optimizasyonu**: Defer ve async özniteliklerinin kullanımı
+- **Görsel Optimizasyonu**: Sıkıştırılmış ve uygun boyutlarda görsel kullanımı
 
-## Test Stratejisi
+### Middleware Optimizasyonları
 
-### Birim Testleri
-
-1. **Model Testleri**: Model metodlarının testi
-2. **View Testleri**: View fonksiyonlarının testi
-3. **Form Testleri**: Form validasyonlarının testi
-4. **API Testleri**: API endpointlerinin testi
-
-### Entegrasyon Testleri
-
-1. **İş Akışı Testleri**: Uçtan uca iş akışlarının testi
-2. **Kullanıcı Senaryoları**: Gerçek kullanım senaryolarının testi
-
-### Test Araçları
-
-1. **Django TestCase**: Django'nun test framework'ü
-2. **Coverage.py**: Test kapsamı ölçümü
-3. **Factory Boy**: Test verisi oluşturma
+- **TeamCheckMiddleware**: Gereksiz veritabanı sorgularının önlenmesi
+- **Önbellek Kullanımı**: Yetki kontrollerinin önbelleklenmesi
 
 ## Deployment Rehberi
 
-### Gereksinimler
-
-1. **Python 3.8+**
-2. **PostgreSQL 12+**
-3. **Nginx** (web sunucusu)
-4. **Gunicorn** (WSGI sunucusu)
-5. **Docker** (isteğe bağlı)
-
 ### Docker ile Deployment
 
-1. Docker Compose dosyasını yapılandırın
-2. Ortam değişkenlerini `.env` dosyasında ayarlayın
-3. Docker Compose ile konteynerları başlatın:
-   ```bash
-   docker-compose up -d
-   ```
-4. Veritabanı migrasyonlarını yapın:
-   ```bash
-   docker-compose exec web python manage.py migrate
-   ```
-5. Statik dosyaları toplayın:
-   ```bash
-   docker-compose exec web python manage.py collectstatic --noinput
-   ```
+1. **Gereksinimler**:
+   - Docker
+   - Docker Compose
+
+2. **Kurulum Adımları**:
+   - Projeyi klonlayın: `git clone https://github.com/kullanici/baykar.git`
+   - .env dosyasını oluşturun ve yapılandırın
+   - Docker Compose'u başlatın: `docker-compose up -d`
+   - Migrasyonları yapın: `docker-compose exec web python manage.py migrate`
+   - Superuser oluşturun: `docker-compose exec web python manage.py createsuperuser`
+   - Statik dosyaları toplayın: `docker-compose exec web python manage.py collectstatic`
 
 ### Manuel Deployment
 
-1. Sanal ortam oluşturun ve bağımlılıkları yükleyin
-2. PostgreSQL veritabanı oluşturun
-3. Ortam değişkenlerini ayarlayın
-4. Veritabanı migrasyonlarını yapın
-5. Statik dosyaları toplayın
-6. Gunicorn servisini yapılandırın
-7. Nginx'i yapılandırın ve başlatın
+1. **Gereksinimler**:
+   - Python 3.8+
+   - PostgreSQL
+   - Nginx/Apache
+
+2. **Kurulum Adımları**:
+   - Projeyi klonlayın: `git clone https://github.com/kullanici/baykar.git`
+   - Sanal ortam oluşturun: `python -m venv venv`
+   - Sanal ortamı aktif edin: `source venv/bin/activate`
+   - Bağımlılıkları yükleyin: `pip install -r requirements.txt`
+   - .env dosyasını oluşturun ve yapılandırın
+   - Migrasyonları yapın: `python manage.py migrate`
+   - Superuser oluşturun: `python manage.py createsuperuser`
+   - Statik dosyaları toplayın: `python manage.py collectstatic`
+   - Nginx/Apache'yi yapılandırın
+   - Gunicorn veya uWSGI hizmetini başlatın
 
 ## Geliştirme Rehberi
 
-### Geliştirme Ortamı Kurulumu
+### Yeni Bir Özellik Eklemek
 
-1. Projeyi klonlayın
-2. Sanal ortam oluşturun ve bağımlılıkları yükleyin
-3. Veritabanı migrasyonlarını yapın
-4. Geliştirme sunucusunu başlatın
+1. **Modelin Tanımlanması**:
+   - `production/models.py` dosyasında modeli tanımlayın
+   - Migrasyonları oluşturun: `python manage.py makemigrations`
+   - Migrasyonları uygulayın: `python manage.py migrate`
 
-### Kod Standartları
+2. **Görünümün Oluşturulması**:
+   - `production/views.py` dosyasında görünümü tanımlayın
+   - İlgili şablonu oluşturun
+   - URL'yi `production/urls.py` dosyasına ekleyin
 
-1. **PEP 8**: Python kod stili
-2. **Django Coding Style**: Django'nun kod standartları
-3. **JavaScript Style Guide**: JavaScript kod stili
-4. **HTML/CSS Best Practices**: HTML ve CSS en iyi uygulamaları
+3. **API Entegrasyonu (Gerekirse)**:
+   - `production/serializers.py` dosyasında serileştiriciyi tanımlayın
+   - `production/views.py` dosyasında ViewSet'i tanımlayın
+   - URL'yi `baykar/urls.py` dosyasına ekleyin
 
-### Geliştirme İş Akışı
+4. **Frontend Entegrasyonu**:
+   - İlgili şablonu oluşturun veya güncelleyin
+   - Gerekli CSS ve JavaScript dosyalarını ekleyin
 
-1. Yeni bir branch oluşturun
-2. Değişiklikleri yapın ve testleri yazın
-3. Testleri çalıştırın
-4. Değişiklikleri commit edin
-5. Pull request açın
-6. Code review sonrası merge edin
-
-### Sürüm Yönetimi
-
-1. **Semantic Versioning**: X.Y.Z (Major.Minor.Patch)
-2. **Release Notes**: Her sürüm için değişiklik notları
-3. **Git Tags**: Sürümleri etiketleme
+5. **Test Yazımı**:
+   - `production/tests.py` dosyasında testleri yazın
+   - Testleri çalıştırın: `python manage.py test production`
 
 ---
 

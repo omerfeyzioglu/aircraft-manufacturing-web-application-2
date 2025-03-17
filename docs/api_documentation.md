@@ -6,9 +6,11 @@ Bu dokümantasyon, Baykar Hava Aracı Üretim Takip Sistemi'nin API'sini açıkl
 
 - [Genel Bilgiler](#genel-bilgiler)
 - [Kimlik Doğrulama](#kimlik-doğrulama)
+- [Yetkilendirme](#yetkilendirme)
 - [Parça API](#parça-api)
 - [Takım API](#takım-api)
 - [Uçak API](#uçak-api)
+- [Kullanıcı API](#kullanıcı-api)
 - [Hata Kodları](#hata-kodları)
 - [Örnek Kullanım Senaryoları](#örnek-kullanım-senaryoları)
 
@@ -26,6 +28,21 @@ API, JSON formatında veri alışverişi yapar. İsteklerde ve yanıtlarda `Cont
 ## Kimlik Doğrulama
 
 API, oturum tabanlı kimlik doğrulama kullanmaktadır. API isteklerinde CSRF token gerekmektedir. Kullanıcılar, web arayüzü üzerinden giriş yaptıktan sonra API'yi kullanabilirler.
+
+**ÖNEMLİ**: Takımı olmayan kullanıcılar sisteme giriş yapamaz ve API'ye erişemezler. Bu kontrol `TeamCheckMiddleware` tarafından sağlanmaktadır.
+
+## Yetkilendirme
+
+API, rol tabanlı yetkilendirme kullanmaktadır. Kullanıcılar, takım rollerine göre belirli API endpointlerine erişebilirler:
+
+- **Süper Kullanıcı (Admin)**: Tüm API endpointlerine erişebilir
+- **Takım Üyeleri**: Sadece kendi takımlarının sorumluluğundaki kaynaklara erişebilir
+
+API'de özel izin sınıfları kullanılmaktadır:
+
+- **IsTeamMemberOrReadOnly**: Takım üyelerine yazma izni, diğerlerine sadece okuma izni verir
+- **IsAssemblyTeamMember**: Sadece montaj takımı üyelerine erişim izni verir
+- **IsPartTeamMember**: Sadece ilgili parça tipindeki takım üyelerine erişim izni verir
 
 ## Parça API
 
@@ -97,48 +114,16 @@ GET /api/parts/1/
 }
 ```
 
-#### Yeni Parça Oluştur
+#### Parça Stok Artırma
 
-**Endpoint**: `POST /api/parts/`
+**Endpoint**: `POST /api/parts/{id}/increase_stock/`
 
-**Açıklama**: Yeni bir parça oluşturur.
-
-**İstek Gövdesi**:
-```json
-{
-  "team_type": "AVIONICS",
-  "aircraft_type": "TB2",
-  "stock": 10,
-  "minimum_stock": 5
-}
-```
-
-**Örnek Yanıt**:
-```json
-{
-  "id": 2,
-  "name": "TB2 Avionics",
-  "team_type": "AVIONICS",
-  "get_team_type_display": "Aviyonik",
-  "aircraft_type": "TB2",
-  "get_aircraft_type_display": "TB2",
-  "stock": 10,
-  "minimum_stock": 5,
-  "is_low_stock": false
-}
-```
-
-#### Parça Güncelle
-
-**Endpoint**: `PUT /api/parts/{id}/`
-
-**Açıklama**: Bir parçayı günceller.
+**Açıklama**: Belirli bir parçanın stok miktarını artırır.
 
 **İstek Gövdesi**:
 ```json
 {
-  "stock": 20,
-  "minimum_stock": 10
+  "quantity": 5
 }
 ```
 
@@ -147,94 +132,8 @@ GET /api/parts/1/
 {
   "id": 1,
   "name": "TB2 Avionics",
-  "team_type": "AVIONICS",
-  "get_team_type_display": "Aviyonik",
-  "aircraft_type": "TB2",
-  "get_aircraft_type_display": "TB2",
-  "stock": 20,
-  "minimum_stock": 10,
-  "is_low_stock": false
-}
-```
-
-#### Parça Sil
-
-**Endpoint**: `DELETE /api/parts/{id}/`
-
-**Açıklama**: Bir parçayı siler.
-
-**Örnek İstek**:
-```
-DELETE /api/parts/1/
-```
-
-**Örnek Yanıt**:
-```
-204 No Content
-```
-
-#### Düşük Stoklu Parçalar
-
-**Endpoint**: `GET /api/parts/low_stock/`
-
-**Açıklama**: Stok miktarı minimum stok seviyesinin altında olan parçaları listeler.
-
-**Örnek İstek**:
-```
-GET /api/parts/low_stock/
-```
-
-**Örnek Yanıt**:
-```json
-[
-  {
-    "id": 1,
-    "name": "TB2 Avionics",
-    "team_type": "AVIONICS",
-    "get_team_type_display": "Aviyonik",
-    "aircraft_type": "TB2",
-    "get_aircraft_type_display": "TB2",
-    "stock": 3,
-    "minimum_stock": 5,
-    "is_low_stock": true
-  }
-]
-```
-
-#### Parça Kullanım Bilgisi
-
-**Endpoint**: `GET /api/parts/{id}/usage/`
-
-**Açıklama**: Bir parçanın hangi uçaklarda kullanıldığını gösterir.
-
-**Örnek İstek**:
-```
-GET /api/parts/1/usage/
-```
-
-**Örnek Yanıt**:
-```json
-{
-  "part_id": 1,
-  "part_name": "TB2 Avionics",
-  "team_type": "AVIONICS",
-  "team_name": "Aviyonik",
-  "aircraft_type": "TB2",
-  "aircraft_name": "TB2",
-  "stock": 3,
-  "minimum_stock": 5,
-  "usage_count": 1,
-  "usage": [
-    {
-      "aircraft_id": 1,
-      "aircraft_type": "TB2",
-      "aircraft_name": "TB2",
-      "assembly_team": "Montaj",
-      "status": "Devam Ediyor",
-      "added_at": "2023-03-14 15:30",
-      "added_by": "Test User"
-    }
-  ]
+  "stock": 15,
+  "message": "Stok başarıyla artırıldı."
 }
 ```
 
@@ -255,7 +154,7 @@ Takım API'si, takımların yönetimi için kullanılır.
 
 **Örnek İstek**:
 ```
-GET /api/teams/?team_type=AVIONICS
+GET /api/teams/?team_type=ASSEMBLY
 ```
 
 **Örnek Yanıt**:
@@ -267,11 +166,24 @@ GET /api/teams/?team_type=AVIONICS
   "results": [
     {
       "id": 1,
-      "name": "Avionics Team",
-      "team_type": "AVIONICS",
-      "member_count": 2,
-      "total_production": 15,
-      "created_at": "2023-03-14T15:30:00Z"
+      "name": "Montaj Takımı A",
+      "team_type": "ASSEMBLY",
+      "get_team_type_display": "Montaj",
+      "member_count": 3,
+      "members": [
+        {
+          "id": 2,
+          "username": "montaj_uzman1"
+        },
+        {
+          "id": 3,
+          "username": "montaj_uzman2"
+        },
+        {
+          "id": 4,
+          "username": "montaj_teknisyen1"
+        }
+      ]
     }
   ]
 }
@@ -292,187 +204,37 @@ GET /api/teams/1/
 ```json
 {
   "id": 1,
-  "name": "Avionics Team",
-  "team_type": "AVIONICS",
-  "member_count": 2,
-  "total_production": 15,
-  "created_at": "2023-03-14T15:30:00Z"
+  "name": "Montaj Takımı A",
+  "team_type": "ASSEMBLY",
+  "get_team_type_display": "Montaj",
+  "member_count": 3,
+  "members": [
+    {
+      "id": 2,
+      "username": "montaj_uzman1"
+    },
+    {
+      "id": 3,
+      "username": "montaj_uzman2"
+    },
+    {
+      "id": 4,
+      "username": "montaj_teknisyen1"
+    }
+  ]
 }
 ```
 
-#### Yeni Takım Oluştur
-
-**Endpoint**: `POST /api/teams/`
-
-**Açıklama**: Yeni bir takım oluşturur.
-
-**İstek Gövdesi**:
-```json
-{
-  "name": "New Avionics Team",
-  "team_type": "AVIONICS",
-  "members": [1, 2]
-}
-```
-
-**Örnek Yanıt**:
-```json
-{
-  "id": 2,
-  "name": "New Avionics Team",
-  "team_type": "AVIONICS",
-  "member_count": 2,
-  "total_production": 0,
-  "created_at": "2023-03-14T16:30:00Z"
-}
-```
-
-#### Takım Güncelle
-
-**Endpoint**: `PUT /api/teams/{id}/`
-
-**Açıklama**: Bir takımı günceller.
-
-**İstek Gövdesi**:
-```json
-{
-  "name": "Updated Avionics Team"
-}
-```
-
-**Örnek Yanıt**:
-```json
-{
-  "id": 1,
-  "name": "Updated Avionics Team",
-  "team_type": "AVIONICS",
-  "member_count": 2,
-  "total_production": 15,
-  "created_at": "2023-03-14T15:30:00Z"
-}
-```
-
-#### Takım Sil
-
-**Endpoint**: `DELETE /api/teams/{id}/`
-
-**Açıklama**: Bir takımı siler.
-
-**Örnek İstek**:
-```
-DELETE /api/teams/1/
-```
-
-**Örnek Yanıt**:
-```
-204 No Content
-```
-
-#### Takıma Üye Ekle
-
-**Endpoint**: `POST /api/teams/{id}/add_member/`
-
-**Açıklama**: Bir takıma yeni bir üye ekler.
-
-**İstek Gövdesi**:
-```json
-{
-  "user": 3
-}
-```
-
-**Örnek Yanıt**:
-```json
-{
-  "detail": "Kullanıcı testuser takıma eklendi."
-}
-```
-
-#### Takımdan Üye Çıkar
-
-**Endpoint**: `POST /api/teams/{id}/remove_member/`
-
-**Açıklama**: Bir takımdan bir üyeyi çıkarır.
-
-**İstek Gövdesi**:
-```json
-{
-  "user": 3
-}
-```
-
-**Örnek Yanıt**:
-```json
-{
-  "detail": "Kullanıcı testuser takımdan çıkarıldı."
-}
-```
-
-#### Takım Üyeleri
-
-**Endpoint**: `GET /api/teams/{id}/members/`
-
-**Açıklama**: Bir takımın tüm üyelerini listeler.
-
-**Örnek İstek**:
-```
-GET /api/teams/1/members/
-```
-
-**Örnek Yanıt**:
-```json
-[
-  {
-    "id": 1,
-    "username": "testuser",
-    "first_name": "Test",
-    "last_name": "User",
-    "email": "test@example.com"
-  },
-  {
-    "id": 2,
-    "username": "anotheruser",
-    "first_name": "Another",
-    "last_name": "User",
-    "email": "another@example.com"
-  }
-]
-```
-
-#### Müsait Kullanıcılar
-
-**Endpoint**: `GET /api/teams/available_users/`
-
-**Açıklama**: Herhangi bir takıma atanmamış kullanıcıları listeler.
-
-**Örnek İstek**:
-```
-GET /api/teams/available_users/
-```
-
-**Örnek Yanıt**:
-```json
-[
-  {
-    "id": 3,
-    "username": "availableuser",
-    "first_name": "Available",
-    "last_name": "User",
-    "email": "available@example.com"
-  }
-]
-```
-
-#### Parça Üret
+#### Parça Üretimi
 
 **Endpoint**: `POST /api/teams/{id}/produce_part/`
 
-**Açıklama**: Takım tarafından parça üretimi yapar.
+**Açıklama**: Belirli bir takımın parça üretmesini sağlar. Sadece ilgili takım üyeleri tarafından kullanılabilir.
 
 **İstek Gövdesi**:
 ```json
 {
-  "part": 1,
+  "part_id": 1,
   "quantity": 5
 }
 ```
@@ -480,37 +242,13 @@ GET /api/teams/available_users/
 **Örnek Yanıt**:
 ```json
 {
-  "detail": "Parça başarıyla üretildi.",
-  "new_stock": 15
-}
-```
-
-#### Üretim Geçmişi
-
-**Endpoint**: `GET /api/teams/{id}/production-history/`
-
-**Açıklama**: Takımın üretim geçmişini listeler.
-
-**Örnek İstek**:
-```
-GET /api/teams/1/production-history/
-```
-
-**Örnek Yanıt**:
-```json
-[
-  {
+  "message": "5 adet TB2 Avionics başarıyla üretildi.",
+  "part": {
     "id": 1,
-    "team": 1,
-    "team_name": "Avionics Team",
-    "part": 1,
-    "part_name": "TB2 Avionics",
-    "quantity": 5,
-    "created_by": 1,
-    "created_by_username": "testuser",
-    "created_at": "2023-03-14T15:30:00Z"
+    "name": "TB2 Avionics",
+    "stock": 15
   }
-]
+}
 ```
 
 ## Uçak API
@@ -527,11 +265,12 @@ Uçak API'si, uçakların yönetimi için kullanılır.
 
 **Parametreler**:
 - `aircraft_type` (isteğe bağlı): Uçak tipine göre filtrele (TB2, TB3, AKINCI, KIZILELMA)
-- `status` (isteğe bağlı): Duruma göre filtrele (in_production, completed)
+- `assembly_team` (isteğe bağlı): Montaj takımına göre filtrele
+- `is_complete` (isteğe bağlı): Tamamlanma durumuna göre filtrele (true, false)
 
 **Örnek İstek**:
 ```
-GET /api/aircraft/?aircraft_type=TB2&status=in_production
+GET /api/aircraft/?aircraft_type=TB2&is_complete=false
 ```
 
 **Örnek Yanıt**:
@@ -545,11 +284,19 @@ GET /api/aircraft/?aircraft_type=TB2&status=in_production
       "id": 1,
       "aircraft_type": "TB2",
       "get_aircraft_type_display": "TB2",
-      "assembly_team": 5,
-      "assembly_team_name": "Assembly Team",
+      "assembly_team": {
+        "id": 1,
+        "name": "Montaj Takımı A"
+      },
       "is_complete": false,
-      "created_at": "2023-03-14T15:30:00Z",
-      "completed_at": null
+      "created_at": "2023-06-01T10:00:00Z",
+      "completed_at": null,
+      "missing_parts": {
+        "AVIONICS": 1,
+        "BODY": 1,
+        "WING": 1,
+        "TAIL": 1
+      }
     }
   ]
 }
@@ -572,257 +319,95 @@ GET /api/aircraft/1/
   "id": 1,
   "aircraft_type": "TB2",
   "get_aircraft_type_display": "TB2",
-  "assembly_team": 5,
-  "assembly_team_name": "Assembly Team",
+  "assembly_team": {
+    "id": 1,
+    "name": "Montaj Takımı A"
+  },
   "is_complete": false,
-  "created_at": "2023-03-14T15:30:00Z",
-  "completed_at": null
+  "created_at": "2023-06-01T10:00:00Z",
+  "completed_at": null,
+  "parts": [
+    {
+      "id": 1,
+      "part": {
+        "id": 1,
+        "name": "TB2 Avionics"
+      },
+      "added_at": "2023-06-01T11:00:00Z",
+      "added_by": {
+        "id": 2,
+        "username": "montaj_uzman1"
+      }
+    }
+  ],
+  "missing_parts": {
+    "AVIONICS": 0,
+    "BODY": 1,
+    "WING": 1,
+    "TAIL": 1
+  }
 }
 ```
 
-#### Yeni Uçak Oluştur
+#### Parça Ekleme
 
-**Endpoint**: `POST /api/aircraft/`
+**Endpoint**: `POST /api/aircraft/{id}/add_part/`
 
-**Açıklama**: Yeni bir uçak oluşturur.
+**Açıklama**: Belirli bir uçağa parça ekler. Sadece montaj takımı üyeleri tarafından kullanılabilir.
 
 **İstek Gövdesi**:
 ```json
 {
-  "aircraft_type": "TB2"
+  "part_id": 2
 }
+```
+
+**Örnek Yanıt**:
+```json
+{
+  "message": "TB2 Body başarıyla eklendi.",
+  "is_complete": false,
+  "missing_parts": {
+    "AVIONICS": 0,
+    "BODY": 0,
+    "WING": 1,
+    "TAIL": 1
+  }
+}
+```
+
+## Kullanıcı API
+
+Kullanıcı API'si, kullanıcı bilgilerini almak için kullanılır.
+
+### Endpoint'ler
+
+#### Mevcut Kullanıcı
+
+**Endpoint**: `GET /api/users/me/`
+
+**Açıklama**: Giriş yapmış kullanıcının bilgilerini gösterir.
+
+**Örnek İstek**:
+```
+GET /api/users/me/
 ```
 
 **Örnek Yanıt**:
 ```json
 {
   "id": 2,
-  "aircraft_type": "TB2",
-  "get_aircraft_type_display": "TB2",
-  "assembly_team": 5,
-  "assembly_team_name": "Assembly Team",
-  "is_complete": false,
-  "created_at": "2023-03-14T16:30:00Z",
-  "completed_at": null
-}
-```
-
-#### Uçak Güncelle
-
-**Endpoint**: `PUT /api/aircraft/{id}/`
-
-**Açıklama**: Bir uçağı günceller.
-
-**İstek Gövdesi**:
-```json
-{
-  "assembly_team": 6
-}
-```
-
-**Örnek Yanıt**:
-```json
-{
-  "id": 1,
-  "aircraft_type": "TB2",
-  "get_aircraft_type_display": "TB2",
-  "assembly_team": 6,
-  "assembly_team_name": "New Assembly Team",
-  "is_complete": false,
-  "created_at": "2023-03-14T15:30:00Z",
-  "completed_at": null
-}
-```
-
-#### Uçak Sil
-
-**Endpoint**: `DELETE /api/aircraft/{id}/`
-
-**Açıklama**: Bir uçağı siler.
-
-**Örnek İstek**:
-```
-DELETE /api/aircraft/1/
-```
-
-**Örnek Yanıt**:
-```
-204 No Content
-```
-
-#### Uçağa Parça Ekle
-
-**Endpoint**: `POST /api/aircraft/{id}/add_part/`
-
-**Açıklama**: Bir uçağa parça ekler.
-
-**İstek Gövdesi**:
-```json
-{
-  "part": 1
-}
-```
-
-**Örnek Yanıt**:
-```json
-{
-  "detail": "TB2 Avionics parçası başarıyla eklendi.",
-  "is_complete": false,
-  "missing_parts": {
-    "AVIONICS": 4,
-    "BODY": 10,
-    "WING": 4,
-    "TAIL": 2
-  }
-}
-```
-
-#### Üretimi Tamamla
-
-**Endpoint**: `POST /api/aircraft/{id}/complete_production/`
-
-**Açıklama**: Uçak üretimini tamamlar.
-
-**Örnek İstek**:
-```
-POST /api/aircraft/1/complete_production/
-```
-
-**Örnek Yanıt**:
-```json
-{
-  "detail": "Uçak üretimi tamamlandı."
-}
-```
-
-#### Parça Özeti
-
-**Endpoint**: `GET /api/aircraft/{id}/parts-summary/`
-
-**Açıklama**: Uçağın parça özetini gösterir.
-
-**Örnek İstek**:
-```
-GET /api/aircraft/1/parts-summary/
-```
-
-**Örnek Yanıt**:
-```json
-{
-  "required_parts": [
-    {
-      "team": "Aviyonik",
-      "required": 5,
-      "current": 1,
-      "remaining": 4,
-      "completion": 20
-    },
-    {
-      "team": "Gövde",
-      "required": 10,
-      "current": 0,
-      "remaining": 10,
-      "completion": 0
-    },
-    {
-      "team": "Kanat",
-      "required": 4,
-      "current": 0,
-      "remaining": 4,
-      "completion": 0
-    },
-    {
-      "team": "Kuyruk",
-      "required": 2,
-      "current": 0,
-      "remaining": 2,
-      "completion": 0
-    }
-  ],
-  "current_parts": [
+  "username": "montaj_uzman1",
+  "email": "montaj_uzman1@example.com",
+  "first_name": "Ahmet",
+  "last_name": "Yılmaz",
+  "is_superuser": false,
+  "teams": [
     {
       "id": 1,
-      "name": "TB2 Avionics",
-      "team_type": "AVIONICS",
-      "team_name": "Aviyonik",
-      "added_at": "2023-03-14 15:30",
-      "added_by": "Test User"
-    }
-  ],
-  "missing_parts": 20,
-  "is_complete": false
-}
-```
-
-#### Üretim Geçmişi
-
-**Endpoint**: `GET /api/aircraft/{id}/production-history/`
-
-**Açıklama**: Uçağın üretim geçmişini gösterir.
-
-**Örnek İstek**:
-```
-GET /api/aircraft/1/production-history/
-```
-
-**Örnek Yanıt**:
-```json
-{
-  "aircraft_id": 1,
-  "aircraft_type": "TB2",
-  "aircraft_name": "TB2",
-  "history": [
-    {
-      "part_id": 1,
-      "part_name": "TB2 Avionics",
-      "team_type": "AVIONICS",
-      "team_name": "Aviyonik",
-      "aircraft_type": "TB2",
-      "aircraft_name": "TB2",
-      "added_at": "2023-03-14 15:30",
-      "added_by": "Test User",
-      "user_id": 1
-    }
-  ]
-}
-```
-
-#### Kullanılabilir Parçalar
-
-**Endpoint**: `GET /api/aircraft/{id}/available-parts/`
-
-**Açıklama**: Uçağa eklenebilecek parçaları listeler.
-
-**Örnek İstek**:
-```
-GET /api/aircraft/1/available-parts/
-```
-
-**Örnek Yanıt**:
-```json
-{
-  "parts": [
-    {
-      "id": 1,
-      "name": "TB2 Avionics",
-      "team_type": "AVIONICS",
-      "get_team_type_display": "Aviyonik",
-      "aircraft_type": "TB2",
-      "get_aircraft_type_display": "TB2",
-      "stock": 9,
-      "minimum_stock": 5,
-      "is_low_stock": false
-    },
-    {
-      "id": 2,
-      "name": "TB2 Body",
-      "team_type": "BODY",
-      "get_team_type_display": "Gövde",
-      "aircraft_type": "TB2",
-      "get_aircraft_type_display": "TB2",
-      "stock": 15,
-      "minimum_stock": 5,
-      "is_low_stock": false
+      "name": "Montaj Takımı A",
+      "team_type": "ASSEMBLY",
+      "get_team_type_display": "Montaj"
     }
   ]
 }
@@ -830,74 +415,95 @@ GET /api/aircraft/1/available-parts/
 
 ## Hata Kodları
 
-API, aşağıdaki HTTP durum kodlarını kullanır:
+API, aşağıdaki hata kodlarını döndürebilir:
 
-- `200 OK`: İstek başarılı
-- `201 Created`: Kaynak başarıyla oluşturuldu
-- `204 No Content`: İstek başarılı, ancak içerik yok (genellikle silme işlemlerinde)
-- `400 Bad Request`: İstek geçersiz
-- `401 Unauthorized`: Kimlik doğrulama gerekli
-- `403 Forbidden`: Yetkilendirme hatası
-- `404 Not Found`: Kaynak bulunamadı
-- `500 Internal Server Error`: Sunucu hatası
+| Kod | Açıklama |
+|-----|----------|
+| 400 | Bad Request - İstek parametreleri hatalı |
+| 401 | Unauthorized - Kimlik doğrulama gerekli |
+| 403 | Forbidden - Yetkilendirme hatası (takım yetkisi yok) |
+| 404 | Not Found - Kaynak bulunamadı |
+| 405 | Method Not Allowed - HTTP metodu desteklenmiyor |
+| 500 | Internal Server Error - Sunucu hatası |
+
+### Örnek Hata Yanıtı
+
+```json
+{
+  "detail": "Bu işlem için yetkiniz bulunmamaktadır."
+}
+```
+
+```json
+{
+  "non_field_errors": ["Bu parça stokta mevcut değil."]
+}
+```
+
+```json
+{
+  "part_id": ["Bu alan gereklidir."]
+}
+```
 
 ## Örnek Kullanım Senaryoları
 
-### Senaryo 1: Parça Üretimi ve Stok Kontrolü
+### Aviyonik Takımı - Parça Üretimi
 
-1. Takım listesini al:
-   ```
-   GET /api/teams/
-   ```
+```javascript
+// Aviyonik parçası üretimi için AJAX isteği
+$.ajax({
+    url: '/api/teams/2/produce_part/',
+    type: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({
+        part_id: 1,  // TB2 Avionics
+        quantity: 5
+    }),
+    success: function(response) {
+        console.log('Parça başarıyla üretildi:', response.message);
+        console.log('Yeni stok:', response.part.stock);
+    },
+    error: function(xhr) {
+        console.error('Hata:', xhr.responseJSON.detail);
+    }
+});
+```
 
-2. Parça listesini al:
-   ```
-   GET /api/parts/
-   ```
+### Montaj Takımı - Uçak Oluşturma ve Parça Ekleme
 
-3. Parça üret:
-   ```
-   POST /api/teams/1/produce_part/
-   {
-     "part": 1,
-     "quantity": 5
-   }
-   ```
-
-4. Düşük stoklu parçaları kontrol et:
-   ```
-   GET /api/parts/low_stock/
-   ```
-
-### Senaryo 2: Uçak Üretimi
-
-1. Yeni uçak oluştur:
-   ```
-   POST /api/aircraft/
-   {
-     "aircraft_type": "TB2"
-   }
-   ```
-
-2. Uçağa parça ekle:
-   ```
-   POST /api/aircraft/1/add_part/
-   {
-     "part": 1
-   }
-   ```
-
-3. Parça özetini kontrol et:
-   ```
-   GET /api/aircraft/1/parts-summary/
-   ```
-
-4. Üretimi tamamla:
-   ```
-   POST /api/aircraft/1/complete_production/
-   ```
-
-5. Üretim geçmişini kontrol et:
-   ```
-   GET /api/aircraft/1/production-history/
-   ```
+```javascript
+// Yeni uçak oluşturma
+$.ajax({
+    url: '/api/aircraft/',
+    type: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify({
+        aircraft_type: 'TB2',
+        assembly_team_id: 1
+    }),
+    success: function(response) {
+        console.log('Uçak başarıyla oluşturuldu:', response);
+        
+        // Oluşturulan uçağa parça ekleme
+        $.ajax({
+            url: '/api/aircraft/' + response.id + '/add_part/',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                part_id: 1  // TB2 Avionics
+            }),
+            success: function(addResponse) {
+                console.log('Parça başarıyla eklendi:', addResponse.message);
+                console.log('Eksik parçalar:', addResponse.missing_parts);
+            },
+            error: function(xhr) {
+                console.error('Parça ekleme hatası:', xhr.responseJSON.detail);
+            }
+        });
+    },
+    error: function(xhr) {
+        console.error('Uçak oluşturma hatası:', xhr.responseJSON.detail);
+    }
+});
+```

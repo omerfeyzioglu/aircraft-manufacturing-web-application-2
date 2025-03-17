@@ -1,6 +1,6 @@
 # Baykar Hava Aracı Üretim Takip Sistemi
 
-Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip etmek için geliştirilmiş kapsamlı bir web uygulamasıdır. Sistem, parça üretimi, stok yönetimi, montaj süreci ve üretim istatistiklerini takip etmek için tasarlanmıştır.
+Bu proje, hava aracı üretim süreçlerini izlemek ve yönetmek için geliştirilmiş bir web tabanlı sistemdir. Üretim takımları, parça üretimi, stok kontrolü ve montaj süreçlerini tek bir platformda yönetmeyi sağlar.
 
 ## 📋 İçindekiler
 
@@ -19,44 +19,27 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
 - [API Dokümantasyonu](#-api-dokümantasyonu)
 - [Proje Yapısı](#-proje-yapısı)
 - [Veri Modeli](#-veri-modeli)
-- [Güvenlik Önlemleri](#-güvenlik-önlemleri)
+- [Güvenlik Özellikleri](#-güvenlik-özellikleri)
 - [Performans Optimizasyonları](#-performans-optimizasyonları)
-- [Katkıda Bulunma](#-katkıda-bulunma)
 - [Lisans](#-lisans)
 
 ## 🚀 Proje Özellikleri
 
 ### Temel Özellikler
 
-- **Kullanıcı Yönetimi**: Kullanıcı kaydı, giriş, çıkış ve profil yönetimi
+- **Kullanıcı Yönetimi**: Takıma dayalı yetkilendirme, login/logout, admin ve kullanıcı girişi
 - **Takım Yönetimi**: Aviyonik, Gövde, Kanat, Kuyruk ve Montaj takımları için yönetim arayüzü
 - **Parça Üretimi**: Takımların kendi sorumluluklarındaki parçaları üretmesi
 - **Stok Takibi**: Parça stok seviyelerinin izlenmesi ve düşük stok uyarıları
 - **Uçak Montajı**: Montaj takımının uyumlu parçaları birleştirerek uçak üretmesi
-- **Üretim İstatistikleri**: Üretim süreçlerinin grafikler ve tablolarla görselleştirilmesi
-- **Çoklu Dil Desteği**: Türkçe ve İngilizce dil seçenekleri
+- **Üretim İstatistikleri**: Dashboard üzerinde görsel grafikler ve tablolarla üretim takibi
 
-### Uçak Modelleri
+### Desteklenen Uçak Modelleri
 
 - TB2 (Bayraktar TB2)
 - TB3 (Bayraktar TB3)
 - AKINCI (Bayraktar AKINCI)
 - KIZILELMA (Bayraktar KIZILELMA)
-
-### Parça Tipleri
-
-- Kanat (Wing)
-- Gövde (Body)
-- Kuyruk (Tail)
-- Aviyonik (Avionics)
-
-### Takım Tipleri
-
-- Kanat Takımı (Wing Team)
-- Gövde Takımı (Body Team)
-- Kuyruk Takımı (Tail Team)
-- Aviyonik Takımı (Avionics Team)
-- Montaj Takımı (Assembly Team)
 
 ## 💻 Teknoloji Yığını
 
@@ -65,7 +48,7 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
 - **Python 3.8+**: Ana programlama dili
 - **Django 5.0+**: Web framework
 - **Django REST Framework**: API geliştirme
-- **PostgreSQL**: Veritabanı
+- **PostgreSQL**: Veritabanı (ayrıca SQLite test ortamı için)
 - **drf-spectacular**: API dokümantasyonu (Swagger/OpenAPI)
 
 ### Frontend
@@ -73,10 +56,9 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
 - **HTML5/CSS3**: Sayfa yapısı ve stil
 - **JavaScript/jQuery**: İstemci tarafı etkileşimler
 - **Bootstrap 5**: Responsive tasarım
-- **DataTables**: Veri tabloları
+- **Swiper.js**: Slider ve geçiş efektleri
 - **Chart.js**: Grafikler ve veri görselleştirme
 - **Font Awesome**: İkonlar
-- **Toastr.js**: Bildirimler
 
 ### DevOps
 
@@ -89,7 +71,7 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
 ### Gereksinimler
 
 - Python 3.8+
-- PostgreSQL 12+
+- PostgreSQL 12+ (veya SQLite)
 - pip (Python paket yöneticisi)
 - virtualenv (isteğe bağlı)
 
@@ -97,8 +79,8 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
 
 1. Projeyi klonlayın:
    ```bash
-   git clone https://github.com/kullanici/hava-araci-uretim.git
-   cd hava-araci-uretim
+   git clone https://github.com/kullanici/baykar.git
+   cd baykar
    ```
 
 2. Sanal ortam oluşturun ve aktif edin:
@@ -113,38 +95,32 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
    pip install -r requirements.txt
    ```
 
-4. PostgreSQL veritabanı oluşturun:
-   ```bash
-   createdb aircraft-manifacturing  # PostgreSQL komut satırı aracı
-   ```
-
-5. Veritabanı ayarlarını yapılandırın:
+4. Veritabanı ayarlarını yapılandırın:
    `baykar/settings.py` dosyasında veritabanı bağlantı bilgilerini güncelleyin veya `.env` dosyası oluşturun.
 
-6. Veritabanı migrasyonlarını yapın:
+5. Veritabanı migrasyonlarını yapın:
    ```bash
-   python manage.py makemigrations
    python manage.py migrate
    ```
 
-7. Superuser oluşturun:
+6. Superuser oluşturun:
    ```bash
    python manage.py createsuperuser
    ```
 
-8. Geliştirme sunucusunu başlatın:
+7. Geliştirme sunucusunu başlatın:
    ```bash
    python manage.py runserver
    ```
 
-9. Tarayıcınızda `http://127.0.0.1:8000/` adresine giderek uygulamayı görüntüleyin.
+8. Tarayıcınızda `http://127.0.0.1:8000/` adresine giderek uygulamayı görüntüleyin.
 
 ### Docker ile Kurulum
 
 1. Projeyi klonlayın:
    ```bash
-   git clone https://github.com/kullanici/hava-araci-uretim.git
-   cd hava-araci-uretim
+   git clone https://github.com/kullanici/baykar.git
+   cd baykar
    ```
 
 2. Docker Compose ile konteynerları başlatın:
@@ -152,17 +128,7 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
    docker-compose up -d
    ```
 
-3. Veritabanı migrasyonlarını yapın:
-   ```bash
-   docker-compose exec web python manage.py migrate
-   ```
-
-4. Superuser oluşturun:
-   ```bash
-   docker-compose exec web python manage.py createsuperuser
-   ```
-
-5. Tarayıcınızda `http://localhost:8000/` adresine giderek uygulamayı görüntüleyin.
+3. Tarayıcınızda `http://localhost:8000/` adresine giderek uygulamayı görüntüleyin.
 
 ## 📖 Kullanım
 
@@ -175,6 +141,8 @@ Sistem, kullanıcıları takımlara atar ve her takımın kendi sorumluluk alan�
 - **Kanat Takımı**: Sadece kanat parçaları üretebilir
 - **Kuyruk Takımı**: Sadece kuyruk parçaları üretebilir
 - **Montaj Takımı**: Parça üretemez, sadece uçak montajı yapabilir
+
+**ÖNEMLİ:** Takımı olmayan kullanıcılar sisteme giriş yapamaz ve admin ile iletişime geçmeleri istenir.
 
 ### Parça Yönetimi
 
@@ -220,21 +188,6 @@ Sistem, kullanıcıları takımlara atar ve her takımın kendi sorumluluk alan�
    - "Ekle" butonuna tıklayın
    - Tüm gerekli parçalar eklendiğinde uçak otomatik olarak tamamlanır
 
-3. **Uçak Listesi**:
-   - Tüm uçakları görüntüleyin
-   - Uçak modeli, durum ve montaj takımına göre filtreleme yapın
-   - Tamamlanma yüzdesini ve eksik parçaları görüntüleyin
-
-### Stok Takibi
-
-1. **Stok Durumu**:
-   - Ana sayfadaki "Düşük Stok Uyarıları" bölümünden kritik stok seviyesindeki parçaları görüntüleyin
-   - "Parçalar" sayfasından detaylı stok bilgilerini görüntüleyin
-
-2. **Üretim Geçmişi**:
-   - "Parçalar" sayfasından bir parçanın üretim geçmişini görüntüleyin
-   - Tarih, miktar ve üreten takım bilgilerini görüntüleyin
-
 ## 🔌 API Dokümantasyonu
 
 Sistem, tüm işlevlere programatik erişim sağlayan kapsamlı bir REST API sunar:
@@ -244,129 +197,79 @@ Sistem, tüm işlevlere programatik erişim sağlayan kapsamlı bir REST API sun
 - **ReDoc**: `/api/redoc/`
 - **OpenAPI Şeması**: `/api/schema/`
 
-### Temel API Endpointleri
+Detaylı API dokümantasyonu için `/docs/api_documentation.md` dosyasını inceleyebilirsiniz.
 
-- `/api/parts/`: Parça yönetimi
-- `/api/teams/`: Takım yönetimi
-- `/api/aircraft/`: Uçak yönetimi
-
-### Özel API Aksiyonları
-
-- `/api/teams/{id}/produce_part/`: Parça üretimi
-- `/api/aircraft/{id}/add_part/`: Uçağa parça ekleme
-- `/api/aircraft/{id}/parts_summary/`: Uçak parça özeti
-
-## 📂 Proje Yapısı
+## 📁 Proje Yapısı
 
 ```
 baykar/
-├── baykar/                  # Proje ana dizini
+│
+├── baykar/                  # Ana proje klasörü
 │   ├── settings.py          # Proje ayarları
-│   ├── urls.py              # Ana URL yapılandırması
-│   ├── wsgi.py              # WSGI yapılandırması
-│   └── asgi.py              # ASGI yapılandırması
-├── production/              # Üretim uygulaması
-│   ├── migrations/          # Veritabanı migrasyonları
-│   ├── templates/           # Uygulama şablonları
+│   ├── urls.py              # Ana URL konfigürasyonu
+│   └── wsgi.py              # WSGI konfigürasyonu
+│
+├── production/              # Ana uygulama
 │   ├── models.py            # Veri modelleri
 │   ├── views.py             # Görünümler
-│   ├── urls.py              # URL yapılandırması
+│   ├── urls.py              # URL yönlendirmeleri
 │   ├── serializers.py       # API serileştiricileri
-│   ├── signals.py           # Django sinyalleri
-│   └── apps.py              # Uygulama yapılandırması
-├── templates/               # Proje şablonları
+│   ├── admin.py             # Admin panel konfigürasyonu
+│   ├── signals.py           # Signal handlers
+│   └── tests.py             # Test dosyaları
+│
+├── templates/               # HTML şablonları
 │   ├── base.html            # Ana şablon
-│   ├── home.html            # Ana sayfa
-│   ├── registration/        # Kimlik doğrulama şablonları
-│   ├── parts/               # Parça şablonları
-│   ├── teams/               # Takım şablonları
-│   └── aircraft/            # Uçak şablonları
-├── static/                  # Statik dosyalar
-│   ├── css/                 # CSS dosyaları
-│   ├── js/                  # JavaScript dosyaları
-│   └── img/                 # Resimler
+│   ├── login.html           # Giriş sayfası
+│   └── production/          # Üretim şablonları
+│
+├── static/                  # Statik dosyalar (CSS, JS, resimler)
+│
 ├── media/                   # Kullanıcı yüklenen dosyalar
+│
+├── docs/                    # Dokümantasyon
+│   ├── api_documentation.md # API dokümantasyonu
+│   └── technical_documentation.md # Teknik dokümantasyon
+│
 ├── requirements.txt         # Python bağımlılıkları
-├── manage.py                # Django yönetim betiği
-├── Dockerfile               # Docker yapılandırması
-├── docker-compose.yml       # Docker Compose yapılandırması
-└── README.md                # Proje dokümantasyonu
+├── manage.py                # Django yönetim komutu
+├── Dockerfile               # Docker konfigürasyonu
+└── docker-compose.yml       # Docker Compose konfigürasyonu
 ```
 
 ## 📊 Veri Modeli
 
 ### Temel Modeller
 
-1. **Part (Parça)**
-   - name: Parça adı
-   - team_type: Üretici takım tipi
-   - aircraft_type: Uçak tipi
-   - stock: Stok miktarı
-   - minimum_stock: Minimum stok seviyesi
+- **Team**: Takımlar (Aviyonik, Gövde, Kanat, Kuyruk, Montaj)
+- **Part**: Uçak parçaları (Aviyonik, Gövde, Kanat, Kuyruk)
+- **Aircraft**: Üretilen uçaklar
+- **AircraftPart**: Uçak-Parça ilişkisi
+- **Production**: Üretim kayıtları
 
-2. **Team (Takım)**
-   - name: Takım adı
-   - team_type: Takım tipi
-   - members: Takım üyeleri (User modeli ile ilişki)
+### İlişkiler
 
-3. **Aircraft (Uçak)**
-   - aircraft_type: Uçak tipi
-   - assembly_team: Montaj takımı (Team modeli ile ilişki)
-   - parts: Uçağa eklenen parçalar (Part modeli ile ilişki)
-   - created_at: Oluşturulma tarihi
-   - completed_at: Tamamlanma tarihi
+- Her takımın birden fazla üyesi olabilir (User)
+- Her parça belirli bir takım tipi tarafından üretilir
+- Her uçağın bir montaj takımı ve birden fazla parçası vardır
+- Her üretim kaydı bir takım ve bir parça ile ilişkilidir
 
-4. **AircraftPart (Uçak Parçası)**
-   - aircraft: Uçak (Aircraft modeli ile ilişki)
-   - part: Parça (Part modeli ile ilişki)
-   - added_at: Eklenme tarihi
-   - added_by: Ekleyen kullanıcı (User modeli ile ilişki)
+## 🔒 Güvenlik Özellikleri
 
-5. **Production (Üretim)**
-   - team: Üretici takım (Team modeli ile ilişki)
-   - part: Üretilen parça (Part modeli ile ilişki)
-   - quantity: Üretim miktarı
-   - created_at: Üretim tarihi
-   - created_by: Üreten kullanıcı (User modeli ile ilişki)
+- **Takım Bazlı Yetkilendirme**: Kullanıcılar sadece kendi takımlarının yetkileri dahilinde işlem yapabilir
+- **Middleware Kontrolleri**: `TeamCheckMiddleware` ile takımı olmayan kullanıcılar sistemden çıkarılır
+- **CustomLoginView**: Takımı olmayan kullanıcıların girişini engeller
+- **Django Permission Framework**: Nesne seviyesinde yetkilendirme kontrolleri
 
-### İş Kuralları
+## 🚀 Performans Optimizasyonları
 
-- Her takım sadece kendi tipine uygun parçaları üretebilir
-- Montaj takımı parça üretemez, sadece uçak montajı yapabilir
-- Her parça belirli bir uçak modeline özgüdür ve başka modellerde kullanılamaz
-- Her uçak modeli için belirli sayıda ve tipte parça gereklidir
-- Bir parça bir uçakta kullanıldığında stoktan düşer
-- Stok seviyesi minimum seviyenin altına düştüğünde uyarı verilir
-
-## 🔒 Güvenlik Önlemleri
-
-- Django'nun yerleşik güvenlik özellikleri (CSRF koruması, XSS koruması, vb.)
-- Kullanıcı kimlik doğrulama ve yetkilendirme
-- Form doğrulama ve veri temizleme
-- Güvenli şifre politikaları
-- HTTPS desteği (production ortamında)
-- API erişim kontrolü
-
-## ⚡ Performans Optimizasyonları
-
-- Veritabanı sorgu optimizasyonları
-- Önbellek kullanımı
-- Lazy loading
-- Sayfalama (pagination)
-- Asenkron AJAX istekleri
-- Statik dosya sıkıştırma ve CDN desteği
-
-## 🤝 Katkıda Bulunma
-
-1. Projeyi fork edin
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Değişikliklerinizi commit edin (`git commit -m 'Add some amazing feature'`)
-4. Branch'inizi push edin (`git push origin feature/amazing-feature`)
-5. Pull Request açın
+- **Video ve Görsel Optimizasyonu**: Login sayfasındaki video ve görseller optimizasyonu
+- **GPU Hızlandırma**: CSS `will-change` özelliği ile animasyonlarda daha akıcı performans
+- **Lazy Loading**: Kaynakların gerektiğinde yüklenmesi
 
 ## 📄 Lisans
 
-Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır.
 
 ---
 
@@ -374,4 +277,4 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 
 Proje Yöneticisi - [@kullanici](https://github.com/kullanici)
 
-Proje Linki: [https://github.com/kullanici/hava-araci-uretim](https://github.com/kullanici/hava-araci-uretim) 
+Proje Linki: [https://github.com/kullanici/baykar](https://github.com/kullanici/baykar) 

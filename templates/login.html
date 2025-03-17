@@ -9,6 +9,9 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet">
     <style>
         body {
             margin: 0;
@@ -32,6 +35,10 @@
             height: 100%;
             z-index: -1;
             overflow: hidden;
+            background-color: #001f4d;
+            background-image: url("{% static 'videos/koklerden-goklere-poster.jpg' %}");
+            background-size: cover;
+            background-position: center;
         }
         
         .video-container video {
@@ -44,6 +51,12 @@
             left: 50%;
             transform: translate(-50%, -50%);
             object-fit: cover;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+        
+        .video-loaded video {
+            opacity: 1;
         }
         
         .overlay {
@@ -52,7 +65,13 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 33, 105, 0.3);
+            background: linear-gradient(
+                135deg,
+                rgba(0, 33, 105, 0.4) 0%,
+                rgba(0, 33, 105, 0.2) 100%
+            );
+            backdrop-filter: blur(1px);
+            will-change: transform; /* GPU hızlandırma */
         }
         
         .login-slider-container {
@@ -63,6 +82,9 @@
             width: 520px;
             height: 580px;
             overflow: visible;
+            display: flex;
+            align-items: center;
+            will-change: transform; /* GPU hızlandırma */
         }
         
         .swiper {
@@ -76,6 +98,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            will-change: transform; /* GPU hızlandırma */
         }
         
         .login-container {
@@ -85,7 +108,14 @@
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
             padding: 30px;
             text-align: center;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s ease;
+            will-change: transform, box-shadow; /* GPU hızlandırma */
+        }
+        
+        .login-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
         }
         
         .login-logo {
@@ -167,7 +197,7 @@
             border-radius: 4px;
             font-weight: 500;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: background-color 0.2s;
         }
         
         .btn-login:hover {
@@ -185,10 +215,19 @@
         .alert {
             background-color: #f8d7da;
             color: #721c24;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px solid #f5c6cb;
+            border-radius: 8px;
+            margin-bottom: 25px;
             text-align: left;
+            font-weight: 500;
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .alert i {
+            margin-right: 8px;
+            color: #dc3545;
         }
         
         .swiper-pagination {
@@ -292,17 +331,106 @@
         .nav-button-prev {
             left: -5px;
         }
+
+        .slogan-container {
+            position: absolute;
+            left: -500px;
+            top: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+            text-align: right;
+            width: 500px;
+            perspective: 1000px;
+            will-change: transform; /* GPU hızlandırma */
+        }
+        
+        .slogan {
+            font-family: 'Great Vibes', cursive;
+            color: white;
+            font-size: 72px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            transform-style: preserve-3d;
+            animation: float 8s ease-in-out infinite;
+            position: relative;
+            line-height: 1.3;
+            will-change: transform; /* GPU hızlandırma */
+        }
+
+        .slogan span {
+            display: block;
+            opacity: 0;
+            animation: fadeIn 1.5s ease-out forwards;
+            will-change: opacity, transform; /* GPU hızlandırma */
+        }
+
+        .slogan span:first-child {
+            animation-delay: 0.5s;
+        }
+
+        .slogan span:last-child {
+            animation-delay: 1s;
+            margin-left: 100px;
+        }
+
+        .slogan::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            right: 0;
+            width: 40%;
+            height: 2px;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.8));
+        }
+
+        .slogan::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            right: 0;
+            width: 80%;
+            height: 2px;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.8));
+        }
+
+        @keyframes float {
+            0% {
+                transform: rotate(-10deg) translateY(0px);
+            }
+            50% {
+                transform: rotate(-10deg) translateY(-15px);
+            }
+            100% {
+                transform: rotate(-10deg) translateY(0px);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
     </style>
 </head>
 <body class="login-page">
     <div class="video-container">
-        <video autoplay muted loop playsinline poster="{% static 'videos/koklerden-goklere-poster.jpg' %}">
+        <video autoplay muted loop playsinline preload="auto" poster="{% static 'videos/koklerden-goklere-poster.jpg' %}">
             <source src="{% static 'videos/koklerden-goklere.mp4' %}" type="video/mp4">
         </video>
         <div class="overlay"></div>
-    </div>
-    
+                    </div>
+
     <div class="login-slider-container">
+        <div class="slogan-container">
+            <h1 class="slogan">
+                <span>Köklerden</span>
+                <span>Göklere</span>
+            </h1>
+        </div>
         <div class="swiper">
             <button class="nav-button nav-button-prev">❮</button>
             <button class="nav-button nav-button-next">❯</button>
@@ -318,18 +446,24 @@
                         
                         {% if form.errors %}
                         <div class="alert">
-                            <i class="fas fa-exclamation-circle"></i>
-                            Kullanıcı adı veya şifre hatalı. Lütfen tekrar deneyiniz.
+                            <i class="fas fa-exclamation-triangle"></i>
+                            {% if form.non_field_errors %}
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            {% else %}
+                                Kullanıcı adı veya şifre hatalı. Lütfen tekrar deneyiniz.
+                            {% endif %}
                         </div>
                         {% endif %}
                         
                         <form method="post" action="{% url 'login' %}" novalidate id="user-form">
                             {% csrf_token %}
-                            
-                            {% if next %}
-                                <input type="hidden" name="next" value="{{ next }}">
-                            {% endif %}
-                            
+                        
+                        {% if next %}
+                            <input type="hidden" name="next" value="{{ next }}">
+                        {% endif %}
+                        
                             <div class="form-group">
                                 <label for="id_username">Kullanıcı Adı</label>
                                 <div class="input-group">
@@ -360,9 +494,9 @@
                                            placeholder="Şifrenizi girin"
                                            required
                                            autocomplete="current-password">
-                                </div>
-                            </div>
-                            
+                        </div>
+                        </div>
+                        
                             <button type="submit" class="btn-login">
                                 <i class="fas fa-sign-in-alt"></i> Giriş Yap
                             </button>
@@ -418,7 +552,7 @@
                             <button type="submit" class="btn-login btn-admin">
                                 <i class="fas fa-sign-in-alt"></i> Admin Girişi
                             </button>
-                        </form>
+                    </form>
                     </div>
                 </div>
             </div>
@@ -432,31 +566,56 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.js" defer></script>
     <script>
+        // Sayfa yüklendiğinde çalışacak fonksiyonlar
         document.addEventListener('DOMContentLoaded', function() {
-            // Video yükleme kontrolü
+            // Video yükleme optimizasyonu
+            const videoContainer = document.querySelector('.video-container');
             const video = document.querySelector('video');
             
             if (video) {
-                video.addEventListener('loadeddata', function() {
+                // Video yükleme olayını dinle
+                video.addEventListener('canplay', function() {
+                    videoContainer.classList.add('video-loaded');
                     console.log("Video loaded successfully!");
                 });
                 
+                // Video yükleme hatası
                 video.addEventListener('error', function(e) {
                     console.error('Video yüklenirken hata oluştu:', e);
-                    video.style.display = 'none';
-                    video.parentElement.style.backgroundColor = '#001f4d';
+                    // Video yüklenemezse arka plan resmi gösterilecek
                 });
+                
+                // Düşük bağlantı hızlarında 5 saniye içinde video yüklenmezse arka plan resmi kullan
+                setTimeout(function() {
+                    if (video.readyState < 3) { // HAVE_FUTURE_DATA durumundan düşükse
+                        console.log("Video yüklemesi yavaş, arka plan resmi kullanılıyor");
+                        // Video yüklemeyi durdur
+                        video.src = "";
+                        video.load();
+                    }
+                }, 5000);
             }
             
+            // Swiper'ı yükle
+            loadSwiper();
+            
+            // İlk form elemanına odaklanma
+            setTimeout(function() {
+                document.getElementById('id_username').focus();
+            }, 500);
+        });
+        
+        // Swiper'ı ayrı bir fonksiyonda yükle (performans için)
+        function loadSwiper() {
             // Swiper slider başlatma
             const swiper = new Swiper('.swiper', {
                 slidesPerView: 1,
                 spaceBetween: 30,
                 loop: false,
                 effect: 'slide',
-                speed: 500,
+                speed: 300, // Daha hızlı geçiş
                 pagination: {
                     el: '.swiper-pagination',
                     clickable: true,
@@ -468,6 +627,12 @@
                 keyboard: {
                     enabled: true,
                 },
+                // Performans optimizasyonları
+                preloadImages: false,
+                lazy: true,
+                watchSlidesProgress: true,
+                observer: true,
+                observeParents: true
             });
             
             // Ok butonlarına tıklama olayları
@@ -477,15 +642,7 @@
             document.querySelector('.nav-button-prev').addEventListener('click', () => {
                 swiper.slidePrev();
             });
-            
-            // Admin form işleme
-            document.getElementById('admin-form').addEventListener('submit', function(e) {
-                console.log('Admin form gönderiliyor...');
-            });
-            
-            // İlk form elemanına odaklanma
-            document.getElementById('id_username').focus();
-        });
+        }
     </script>
 </body>
 </html> 
