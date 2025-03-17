@@ -223,7 +223,20 @@ $(document).ready(function() {
             url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json'
         }
     });
-
+    
+    // Basit arama fonksiyonu
+    $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+        var searchTerm = settings.oPreviousSearch.sSearch.toLowerCase();
+        if (!searchTerm) return true;
+        
+        for (var i = 0; i < data.length; i++) {
+            if (data[i].toLowerCase().indexOf(searchTerm) !== -1) {
+                return true;
+            }
+        }
+        return false;
+    });
+    
     // Tab değişikliğinde tabloları yenile
     $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function() {
         var targetId = $(this).attr('data-bs-target');

@@ -12,6 +12,181 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --baykar-primary: #002169;
+            --baykar-secondary: #0d6efd;
+            --baykar-accent: #ff4d00;
+            --baykar-light: #f8f9fa;
+            --baykar-dark: #212529;
+            --baykar-gray: #6c757d;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            height: 100%;
+            width: 100%;
+            font-family: 'Roboto', sans-serif;
+        }
+        
+        .fullscreen-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        
+        .video-background {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+        
+        .video-background:after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 33, 105, 0.4);
+            z-index: 1;
+        }
+        
+        .video-background video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .login-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+        }
+        
+        .login-form {
+            width: 100%;
+            max-width: 400px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(4px);
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .login-icon {
+            color: var(--baykar-primary);
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .login-title {
+            color: var(--baykar-primary);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .login-subtitle {
+            color: var(--baykar-gray);
+            font-size: 0.9rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--baykar-dark);
+            font-weight: 500;
+        }
+        
+        .input-group {
+            display: flex;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            overflow: hidden;
+            background: white;
+            height: 45px;
+        }
+        
+        .input-group:focus-within {
+            border-color: var(--baykar-secondary);
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+        
+        .input-group-text {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            background-color: white;
+            border: none;
+            border-right: 1px solid #ced4da;
+            height: 100%;
+        }
+        
+        .input-group .form-control {
+            border: none;
+            border-radius: 0;
+            padding: 0.75rem;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .btn-login {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--baykar-primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: 500;
+            margin-top: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-login:hover {
+            background-color: #001a3a;
+        }
+        
+        .alert {
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+        }
+        
+        .alert-danger {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
 </head>
 <body>
     <!-- Navigation -->
