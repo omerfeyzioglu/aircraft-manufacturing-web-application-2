@@ -1,5 +1,354 @@
 # Baykar Hava Aracı Üretim Takip Sistemi
 
+[English](#english) | [Türkçe](#türkçe)
+
+## English
+
+### Project Overview
+Baykar Aircraft Production Tracking System is a comprehensive web application developed to track Baykar's UAV (Unmanned Aerial Vehicle) production processes. The system is designed to monitor part production, inventory management, assembly process, and production statistics.
+
+### Table of Contents
+- [Project Features](#project-features)
+- [Technology Stack](#technology-stack)
+- [Installation](#installation)
+  - [Requirements](#requirements)
+  - [Local Installation](#local-installation)
+  - [Docker Installation](#docker-installation)
+- [Usage](#usage)
+  - [User Roles and Permissions](#user-roles-and-permissions)
+  - [Part Management](#part-management)
+  - [Team Management](#team-management)
+  - [Aircraft Assembly Process](#aircraft-assembly-process)
+  - [Stock Tracking](#stock-tracking)
+- [API Documentation](#api-documentation)
+- [Project Structure](#project-structure)
+- [Data Model](#data-model)
+- [Security Measures](#security-measures)
+- [Performance Optimizations](#performance-optimizations)
+- [Contributing](#contributing)
+- [License](#license)
+
+### Project Features
+
+#### Core Features
+- **User Management**: User registration, login, logout, and profile management
+- **Team Management**: Management interface for Avionics, Body, Wing, Tail, and Assembly teams
+- **Part Production**: Teams can produce parts within their responsibilities
+- **Stock Tracking**: Monitoring part stock levels and low stock alerts
+- **Aircraft Assembly**: Assembly team combines compatible parts to produce aircraft
+- **Production Statistics**: Visualization of production processes with graphs and tables
+- **Multi-language Support**: Turkish and English language options
+
+#### Aircraft Models
+- TB2 (Bayraktar TB2)
+- TB3 (Bayraktar TB3)
+- AKINCI (Bayraktar AKINCI)
+- KIZILELMA (Bayraktar KIZILELMA)
+
+#### Part Types
+- Wing
+- Body
+- Tail
+- Avionics
+
+#### Team Types
+- Wing Team
+- Body Team
+- Tail Team
+- Avionics Team
+- Assembly Team
+
+### Technology Stack
+
+#### Backend
+- **Python 3.8+**: Main programming language
+- **Django 5.0+**: Web framework
+- **Django REST Framework**: API development
+- **PostgreSQL**: Database
+- **drf-spectacular**: API documentation (Swagger/OpenAPI)
+
+#### Frontend
+- **HTML5/CSS3**: Page structure and styling
+- **JavaScript/jQuery**: Client-side interactions
+- **Bootstrap 5**: Responsive design
+- **DataTables**: Data tables
+- **Chart.js**: Graphs and data visualization
+- **Font Awesome**: Icons
+- **Toastr.js**: Notifications
+
+#### DevOps
+- **Docker**: Containerization
+- **Docker Compose**: Multi-container management
+- **Git**: Version control
+
+### Installation
+
+#### Requirements
+- Python 3.8+
+- PostgreSQL 12+
+- pip (Python package manager)
+- virtualenv (optional)
+
+#### Local Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/user/aircraft-manufacturing.git
+   cd aircraft-manufacturing
+   ```
+
+2. Create and activate virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # Linux/Mac
+   venv\Scripts\activate     # Windows
+   ```
+
+3. Install required packages:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Create PostgreSQL database:
+   ```bash
+   createdb aircraft-manufacturing  # PostgreSQL command line tool
+   ```
+
+5. Configure database settings:
+   Update database connection information in `baykar/settings.py` or create `.env` file.
+
+6. Run database migrations:
+   ```bash
+   python manage.py makemigrations
+   python manage.py migrate
+   ```
+
+7. Create superuser:
+   ```bash
+   python manage.py createsuperuser
+   ```
+
+8. Start development server:
+   ```bash
+   python manage.py runserver
+   ```
+
+9. Visit `http://127.0.0.1:8000/` in your browser to view the application.
+
+#### Docker Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/user/aircraft-manufacturing.git
+   cd aircraft-manufacturing
+   ```
+
+2. Start containers with Docker Compose:
+   ```bash
+   docker-compose up -d
+   ```
+
+3. Run database migrations:
+   ```bash
+   docker-compose exec web python manage.py migrate
+   ```
+
+4. Create superuser:
+   ```bash
+   docker-compose exec web python manage.py createsuperuser
+   ```
+
+5. Visit `http://localhost:8000/` in your browser to view the application.
+
+### Usage
+
+#### User Roles and Permissions
+The system assigns users to teams, and each team has its own area of responsibility:
+
+- **Avionics Team**: Can only produce avionics parts
+- **Body Team**: Can only produce body parts
+- **Wing Team**: Can only produce wing parts
+- **Tail Team**: Can only produce tail parts
+- **Assembly Team**: Cannot produce parts, can only assemble aircraft
+
+#### Part Management
+1. **Part Production**:
+   - Login as relevant team member
+   - Go to "Parts" page
+   - Click "New Part Production"
+   - Select part type, aircraft model, and quantity
+   - Click "Produce"
+
+2. **Part List**:
+   - View all parts
+   - Filter by part type, aircraft model, and stock status
+   - View parts with low stock levels
+
+#### Team Management
+1. **Team Creation** (Admin):
+   - Login to admin panel
+   - Go to "Teams" section
+   - Click "Add Team"
+   - Set team name and type
+   - Select team members
+
+2. **Team List**:
+   - View all teams
+   - Filter by team type
+   - View team members and production statistics
+
+#### Aircraft Assembly Process
+1. **New Aircraft Start** (Assembly Team):
+   - Login as assembly team member
+   - Go to "Aircraft" page
+   - Click "New Aircraft"
+   - Select aircraft model
+   - Click "Start"
+
+2. **Part Addition** (Assembly Team):
+   - Select an aircraft from the list
+   - Click "Add Part"
+   - Select part to add
+   - Click "Add"
+   - Aircraft is automatically completed when all required parts are added
+
+3. **Aircraft List**:
+   - View all aircraft
+   - Filter by aircraft model, status, and assembly team
+   - View completion percentage and missing parts
+
+#### Stock Tracking
+1. **Stock Status**:
+   - View parts with critical stock levels from "Low Stock Alerts" section on main page
+   - View detailed stock information from "Parts" page
+
+2. **Production History**:
+   - View production history of a part from "Parts" page
+   - View date, quantity, and producing team information
+
+### API Documentation
+The system provides a comprehensive REST API for programmatic access to all functions:
+
+- **API Endpoint**: `/api/`
+- **Swagger UI**: `/api/docs/`
+- **ReDoc**: `/api/redoc/`
+- **OpenAPI Schema**: `/api/schema/`
+
+#### Basic API Endpoints
+- `/api/parts/`: Part management
+- `/api/teams/`: Team management
+- `/api/aircraft/`: Aircraft management
+
+#### Special API Actions
+- `/api/teams/{id}/produce_part/`: Part production
+- `/api/aircraft/{id}/add_part/`: Adding part to aircraft
+- `/api/aircraft/{id}/parts_summary/`: Aircraft parts summary
+
+### Project Structure
+```
+baykar/
+├── baykar/                  # Project main directory
+│   ├── settings.py          # Project settings
+│   ├── urls.py              # Main URL configuration
+│   ├── wsgi.py              # WSGI configuration
+│   └── asgi.py              # ASGI configuration
+├── production/              # Production application
+│   ├── migrations/          # Database migrations
+│   ├── templates/           # Application templates
+│   ├── models.py            # Data models
+│   ├── views.py             # Views
+│   ├── urls.py              # URL configuration
+│   ├── serializers.py       # API serializers
+│   ├── signals.py           # Django signals
+│   └── apps.py              # Application configuration
+├── templates/               # Project templates
+│   ├── base.html            # Base template
+│   ├── home.html            # Home page
+│   ├── registration/        # Authentication templates
+│   ├── parts/               # Parts templates
+│   ├── teams/               # Teams templates
+│   └── aircraft/            # Aircraft templates
+├── static/                  # Static files
+│   ├── css/                 # CSS files
+│   ├── js/                  # JavaScript files
+│   └── img/                 # Images
+├── media/                   # User uploaded files
+├── requirements.txt         # Python dependencies
+├── manage.py                # Django management script
+├── Dockerfile               # Docker configuration
+├── docker-compose.yml       # Docker Compose configuration
+└── README.md                # Project documentation
+```
+
+### Data Model
+
+#### Core Models
+1. **Part**
+   - name: Part name
+   - team_type: Producing team type
+   - aircraft_type: Aircraft type
+   - stock: Stock quantity
+   - minimum_stock: Minimum stock level
+
+2. **Team**
+   - name: Team name
+   - team_type: Team type
+   - members: Team members (relation with User model)
+
+3. **Aircraft**
+   - aircraft_type: Aircraft type
+   - assembly_team: Assembly team (relation with Team model)
+   - parts: Parts added to aircraft (relation with Part model)
+   - created_at: Creation date
+   - completed_at: Completion date
+
+4. **AircraftPart**
+   - aircraft: Aircraft (relation with Aircraft model)
+   - part: Part (relation with Part model)
+   - added_at: Addition date
+   - added_by: User who added (relation with User model)
+
+5. **Production**
+   - team: Producing team (relation with Team model)
+   - part: Produced part (relation with Part model)
+   - quantity: Production quantity
+   - created_at: Production date
+   - created_by: User who produced (relation with User model)
+
+#### Business Rules
+- Each team can only produce parts suitable for their type
+- Assembly team cannot produce parts, can only assemble aircraft
+- Each part is specific to a certain aircraft model and cannot be used in other models
+- Each aircraft model requires a specific number and type of parts
+- When a part is used in an aircraft, it is deducted from stock
+- Alert is given when stock level falls below minimum level
+
+### Security Measures
+- Django's built-in security features (CSRF protection, XSS protection, etc.)
+- User authentication and authorization
+- Form validation and data sanitization
+- Secure password policies
+- HTTPS support (in production environment)
+- API access control
+
+### Performance Optimizations
+- Database query optimizations
+- Cache usage
+- Lazy loading
+- Pagination
+- Asynchronous AJAX requests
+- Static file compression and CDN support
+
+### Contributing
+1. Fork the project
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add some amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open Pull Request
+
+### License
+This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
+
+## Türkçe
+
 Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip etmek için geliştirilmiş kapsamlı bir web uygulamasıdır. Sistem, parça üretimi, stok yönetimi, montaj süreci ve üretim istatistiklerini takip etmek için tasarlanmıştır.
 
 ## 📋 İçindekiler
