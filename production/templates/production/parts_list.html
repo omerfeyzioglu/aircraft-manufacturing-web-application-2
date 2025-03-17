@@ -127,6 +127,13 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
+    // Case-insensitive contains function
+    $.extend($.expr[':'], {
+        'containsIgnoreCase': function(elem, i, match, array) {
+            return (elem.textContent || elem.innerText || '').toLowerCase().indexOf((match[3] || "").toLowerCase()) >= 0;
+        }
+    });
+    
     // DataTable initialization
     var table = $('#partsTable').DataTable({
         ajax: {
@@ -179,6 +186,19 @@ $(document).ready(function() {
         language: {
             url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/tr.json'
         }
+    });
+    
+    // Basit arama fonksiyonu
+    $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+        var searchTerm = settings.oPreviousSearch.sSearch.toLowerCase();
+        if (!searchTerm) return true;
+        
+        for (var i = 0; i < data.length; i++) {
+            if (data[i].toLowerCase().indexOf(searchTerm) !== -1) {
+                return true;
+            }
+        }
+        return false;
     });
 
     // Yeni parça ekle

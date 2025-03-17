@@ -1,91 +1,491 @@
-{% extends 'base.html' %}
+{% load static %}
 
-{% block content %}
-<div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-5">
-            <div class="card shadow-sm">
-                <div class="card-body p-5">
-                    <div class="text-center mb-4">
-                        <i class="fas fa-plane fa-3x text-primary mb-3"></i>
-                        <h2 class="card-title">Giriş Yap</h2>
-                        <p class="text-muted">
-                            Uçak Üretim Takip Sistemine hoş geldiniz
-                        </p>
-                    </div>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baykar Üretim Takip Sistemi - Giriş</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
 
-                    <form method="post" novalidate>
-                        {% csrf_token %}
+        body.login-page {
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            background-color: #002169;
+            position: relative;
+        }
+        
+        .video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        .video-container video {
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            object-fit: cover;
+        }
+        
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 33, 105, 0.3);
+        }
+        
+        .login-slider-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 520px;
+            height: 580px;
+            overflow: visible;
+        }
+        
+        .swiper {
+            width: 480px;
+            height: 100%;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .swiper-slide {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .login-container {
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.85);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .login-logo {
+            margin-bottom: 20px;
+        }
+        
+        .login-logo i {
+            font-size: 40px;
+            color: #002169;
+        }
+        
+        .admin-logo i {
+            color: #d9534f;
+        }
+        
+        .login-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #002169;
+            margin-bottom: 5px;
+        }
+        
+        .admin-title {
+            color: #d9534f;
+        }
+        
+        .login-subtitle {
+            font-size: 14px;
+            color: #6c757d;
+            margin-bottom: 25px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .input-group {
+            display: flex;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .input-group-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            background-color: white;
+            color: #0d6efd;
+            border-right: 1px solid #ced4da;
+        }
+        
+        .admin-input-icon {
+            color: #d9534f;
+        }
+        
+        .form-control {
+            flex: 1;
+            border: none;
+            padding: 10px 15px;
+            outline: none;
+        }
+        
+        .btn-login {
+            width: 100%;
+            background-color: #002169;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-login:hover {
+            background-color: #001a3a;
+        }
+        
+        .btn-admin {
+            background-color: #d9534f;
+        }
+        
+        .btn-admin:hover {
+            background-color: #c9302c;
+        }
+        
+        .alert {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .swiper-pagination {
+            bottom: -30px;
+        }
+        
+        .swiper-pagination-bullet {
+            width: 10px;
+            height: 10px;
+            background-color: #002169;
+            opacity: 0.5;
+        }
+        
+        .swiper-pagination-bullet-active {
+            opacity: 1;
+        }
+        
+        .slide-hint {
+            position: absolute;
+            bottom: -50px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 12px;
+            z-index: 10;
+        }
+        
+        /* Navigasyon okları için stil */
+        .swiper-button-next,
+        .swiper-button-prev {
+            color: #002169;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            top: 50%;
+            transform: translateY(-50%);
+            position: absolute;
+            z-index: 20;
+            cursor: pointer;
+            background: none;
+        }
+        
+        .swiper-button-next:after,
+        .swiper-button-prev:after {
+            font-size: 24px;
+            font-weight: bold;
+            content: '';
+        }
+
+        .swiper-button-next:after {
+            content: '❯';
+        }
+
+        .swiper-button-prev:after {
+            content: '❮';
+        }
+        
+        .swiper-button-next {
+            right: -45px;
+        }
+        
+        .swiper-button-prev {
+            left: -45px;
+        }
+        
+        /* Swiper'ın görünür alanını sınırla */
+        .swiper-container-horizontal > .swiper-pagination-bullets,
+        .swiper-pagination-custom,
+        .swiper-pagination-fraction {
+            bottom: 10px;
+        }
+        
+        /* Swiper'ın görünür alanını sınırla */
+        .swiper-wrapper {
+            width: 100%;
+        }
+
+        .nav-button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            background: none;
+            border: none;
+            color: #002169;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-button-next {
+            right: -5px;
+        }
+
+        .nav-button-prev {
+            left: -5px;
+        }
+    </style>
+</head>
+<body class="login-page">
+    <div class="video-container">
+        <video autoplay muted loop playsinline poster="{% static 'videos/koklerden-goklere-poster.jpg' %}">
+            <source src="{% static 'videos/koklerden-goklere.mp4' %}" type="video/mp4">
+        </video>
+        <div class="overlay"></div>
+    </div>
+    
+    <div class="login-slider-container">
+        <div class="swiper">
+            <button class="nav-button nav-button-prev">❮</button>
+            <button class="nav-button nav-button-next">❯</button>
+            <div class="swiper-wrapper">
+                <!-- Normal Kullanıcı Girişi -->
+                <div class="swiper-slide">
+                    <div class="login-container">
+                        <div class="login-logo">
+                            <i class="fas fa-plane-departure"></i>
+                        </div>
+                        <h1 class="login-title">Kullanıcı Girişi</h1>
+                        <p class="login-subtitle">Uçak Üretim Takip Sistemine hoş geldiniz</p>
                         
                         {% if form.errors %}
-                        <div class="alert alert-danger">
+                        <div class="alert">
                             <i class="fas fa-exclamation-circle"></i>
-                            Kullanıcı adı veya şifre hatalı.
+                            Kullanıcı adı veya şifre hatalı. Lütfen tekrar deneyiniz.
                         </div>
                         {% endif %}
                         
-                        {% if next %}
-                            <input type="hidden" name="next" value="{{ next }}">
-                        {% endif %}
-                        
-                        <div class="mb-3">
-                            <label for="id_username" class="form-label">
-                                <i class="fas fa-user"></i> Kullanıcı Adı
-                            </label>
-                            <input type="text" name="username" id="id_username" 
-                                   class="form-control {% if form.username.errors %}is-invalid{% endif %}"
-                                   required autofocus>
-                            {% if form.username.errors %}
-                            <div class="invalid-feedback">
-                                {{ form.username.errors|join:", " }}
-                            </div>
+                        <form method="post" action="{% url 'login' %}" novalidate id="user-form">
+                            {% csrf_token %}
+                            
+                            {% if next %}
+                                <input type="hidden" name="next" value="{{ next }}">
                             {% endif %}
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label for="id_password" class="form-label">
-                                <i class="fas fa-lock"></i> Şifre
-                            </label>
-                            <input type="password" name="password" id="id_password" 
-                                   class="form-control {% if form.password.errors %}is-invalid{% endif %}"
-                                   required>
-                            {% if form.password.errors %}
-                            <div class="invalid-feedback">
-                                {{ form.password.errors|join:", " }}
+                            
+                            <div class="form-group">
+                                <label for="id_username">Kullanıcı Adı</label>
+                                <div class="input-group">
+                                    <div class="input-group-icon">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                    <input type="text" 
+                                           name="username" 
+                                           id="id_username" 
+                                           class="form-control"
+                                           placeholder="Kullanıcı adınızı girin"
+                                           required 
+                                           autocomplete="username"
+                                           autofocus>
+                                </div>
                             </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">
+                            
+                            <div class="form-group">
+                                <label for="id_password">Şifre</label>
+                                <div class="input-group">
+                                    <div class="input-group-icon">
+                                        <i class="fas fa-lock"></i>
+                                    </div>
+                                    <input type="password" 
+                                           name="password" 
+                                           id="id_password" 
+                                           class="form-control"
+                                           placeholder="Şifrenizi girin"
+                                           required
+                                           autocomplete="current-password">
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn-login">
                                 <i class="fas fa-sign-in-alt"></i> Giriş Yap
                             </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Admin Girişi -->
+                <div class="swiper-slide">
+                    <div class="login-container">
+                        <div class="login-logo">
+                            <i class="fas fa-user-shield admin-logo"></i>
                         </div>
-                    </form>
+                        <h1 class="login-title admin-title">Admin Girişi</h1>
+                        <p class="login-subtitle">Yönetici paneline erişim</p>
+                        
+                        <form method="post" action="/admin/login/" id="admin-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="next" value="/admin/">
+                            
+                            <div class="form-group">
+                                <label for="admin_username">Admin Kullanıcı Adı</label>
+                                <div class="input-group">
+                                    <div class="input-group-icon admin-input-icon">
+                                        <i class="fas fa-user-tie"></i>
+                                    </div>
+                                    <input type="text" 
+                                           name="username" 
+                                           id="admin_username" 
+                                           class="form-control"
+                                           placeholder="Admin kullanıcı adınızı girin"
+                                           required 
+                                           autocomplete="username">
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="admin_password">Admin Şifresi</label>
+                                <div class="input-group">
+                                    <div class="input-group-icon admin-input-icon">
+                                        <i class="fas fa-key"></i>
+                                    </div>
+                                    <input type="password" 
+                                           name="password" 
+                                           id="admin_password" 
+                                           class="form-control"
+                                           placeholder="Admin şifrenizi girin"
+                                           required
+                                           autocomplete="current-password">
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn-login btn-admin">
+                                <i class="fas fa-sign-in-alt"></i> Admin Girişi
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
+            
+            <!-- Pagination dots -->
+            <div class="swiper-pagination"></div>
+        </div>
+        
+        <div class="slide-hint">
+            <i class="fas fa-arrows-left-right"></i> Kaydırarak veya oklara tıklayarak geçiş yapabilirsiniz
         </div>
     </div>
-</div>
 
-<style>
-.card {
-    border: none;
-    border-radius: 1rem;
-}
-
-.form-control {
-    border-radius: 0.5rem;
-    padding: 0.75rem 1rem;
-}
-
-.btn {
-    border-radius: 0.5rem;
-    padding: 0.75rem 1rem;
-}
-
-.alert {
-    border-radius: 0.5rem;
-}
-</style>
-{% endblock %} 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Swiper/8.4.5/swiper-bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Video yükleme kontrolü
+            const video = document.querySelector('video');
+            
+            if (video) {
+                video.addEventListener('loadeddata', function() {
+                    console.log("Video loaded successfully!");
+                });
+                
+                video.addEventListener('error', function(e) {
+                    console.error('Video yüklenirken hata oluştu:', e);
+                    video.style.display = 'none';
+                    video.parentElement.style.backgroundColor = '#001f4d';
+                });
+            }
+            
+            // Swiper slider başlatma
+            const swiper = new Swiper('.swiper', {
+                slidesPerView: 1,
+                spaceBetween: 30,
+                loop: false,
+                effect: 'slide',
+                speed: 500,
+                pagination: {
+                    el: '.swiper-pagination',
+                    clickable: true,
+                },
+                navigation: {
+                    nextEl: '.nav-button-next',
+                    prevEl: '.nav-button-prev',
+                },
+                keyboard: {
+                    enabled: true,
+                },
+            });
+            
+            // Ok butonlarına tıklama olayları
+            document.querySelector('.nav-button-next').addEventListener('click', () => {
+                swiper.slideNext();
+            });
+            document.querySelector('.nav-button-prev').addEventListener('click', () => {
+                swiper.slidePrev();
+            });
+            
+            // Admin form işleme
+            document.getElementById('admin-form').addEventListener('submit', function(e) {
+                console.log('Admin form gönderiliyor...');
+            });
+            
+            // İlk form elemanına odaklanma
+            document.getElementById('id_username').focus();
+        });
+    </script>
+</body>
+</html> 

@@ -10,8 +10,7 @@ urlpatterns = [
     path('api/', include('production.urls')),
     path('api-auth/', include('rest_framework.urls')),
     
-    # Authentication views
-    path('login/', auth_views.LoginView.as_view(template_name='production/login.html'), name='login'),
+    # Authentication views - login kaldırıldı
     path('logout/', auth_views.LogoutView.as_view(next_page='login'), name='logout'),
     path('password_change/', auth_views.PasswordChangeView.as_view(
         template_name='production/password_change.html',
