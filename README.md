@@ -41,7 +41,26 @@ Bu proje, hava aracı üretim süreçlerini izlemek ve yönetmek için geliştir
 - AKINCI (Bayraktar AKINCI)
 - KIZILELMA (Bayraktar KIZILELMA)
 
+
 ## 💻 Teknoloji Yığını
+=======
+### Parça Tipleri
+
+- Kanat (Wing)
+- Gövde (Body)
+- Kuyruk (Tail)
+- Aviyonik (Avionics)
+
+### Takım Tipleri
+
+- Kanat Takımı (Wing Team)
+- Gövde Takımı (Body Team)
+- Kuyruk Takımı (Tail Team)
+- Aviyonik Takımı (Avionics Team)
+- Montaj Takımı (Assembly Team)
+
+## 💻 Kullanılan Teknolojiler
+
 
 ### Backend
 
@@ -130,6 +149,7 @@ Bu proje, hava aracı üretim süreçlerini izlemek ve yönetmek için geliştir
 
 3. Tarayıcınızda `http://localhost:8000/` adresine giderek uygulamayı görüntüleyin.
 
+6. Tarayıcınızda `http://localhost:8000/admin` adresine giderek tüm operasyonları admin olarak görüntüleyebilir ardınıdan kullanıcı oluşturabilirsiniz. Çıkış yaptıktan sonra oluşturduğunuz kullanıcı bilgileri ile tekrardan sisteme giriş yapabilirsiniz.
 ## 📖 Kullanım
 
 ### Kullanıcı Rolleri ve İzinler
@@ -275,6 +295,9 @@ Bu proje [MIT Lisansı](LICENSE) altında lisanslanmıştır.
 
 ## İletişim
 
-Proje Yöneticisi - [@kullanici](https://github.com/kullanici)
+Proje Yöneticisi - [@kullanici](https://github.com/omerfeyzioglu)
+
 
 Proje Linki: [https://github.com/kullanici/baykar](https://github.com/kullanici/baykar) 
+=======
+
