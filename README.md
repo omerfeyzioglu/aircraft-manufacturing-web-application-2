@@ -321,6 +321,24 @@ baykar/
 - When a part is used in an aircraft, it is deducted from stock
 - Alert is given when stock level falls below minimum level
 
+#### Database Relationship Diagram
+
+![Database Relationship Diagram](docs/diagrams/database_diagram.png)
+
+*Figure 1: Database Entity Relationship Diagram showing the relationships between all database models*
+
+#### Aircraft Production State Diagram
+
+![Aircraft Production State Diagram](docs/diagrams/state_diagram.png)
+
+*Figure 2: State Diagram showing the various states an aircraft goes through during manufacturing*
+
+#### Assembly Process Activity Diagram
+
+![Assembly Process Activity Diagram](docs/diagrams/activity_diagram.png)
+
+*Figure 3: Activity Diagram illustrating the workflow of aircraft assembly process*
+
 ### Security Measures
 - Django's built-in security features (CSRF protection, XSS protection, etc.)
 - User authentication and authorization
@@ -381,7 +399,7 @@ To run the project with Docker, follow these steps:
    docker-compose exec web python manage.py collectstatic --noinput
    ```
 
-7. **Check the Application**: Go to `http://localhost:8000` in your browser.
+7. **Check the Application**: Go to `http://localhost:8000/` in your browser.
 
 #### Common Issues
 
@@ -725,96 +743,94 @@ baykar/
 ## 📊 Veri Modeli
 
 ### Temel Modeller
-
-1. **Part (Parça)**
+1. **Parça (Part)**
    - name: Parça adı
    - team_type: Üretici takım tipi
    - aircraft_type: Uçak tipi
    - stock: Stok miktarı
    - minimum_stock: Minimum stok seviyesi
 
-2. **Team (Takım)**
+2. **Takım (Team)**
    - name: Takım adı
    - team_type: Takım tipi
    - members: Takım üyeleri (User modeli ile ilişki)
 
-3. **Aircraft (Uçak)**
+3. **Uçak (Aircraft)**
    - aircraft_type: Uçak tipi
    - assembly_team: Montaj takımı (Team modeli ile ilişki)
    - parts: Uçağa eklenen parçalar (Part modeli ile ilişki)
    - created_at: Oluşturulma tarihi
    - completed_at: Tamamlanma tarihi
 
-4. **AircraftPart (Uçak Parçası)**
+4. **UçakParça (AircraftPart)**
    - aircraft: Uçak (Aircraft modeli ile ilişki)
    - part: Parça (Part modeli ile ilişki)
    - added_at: Eklenme tarihi
    - added_by: Ekleyen kullanıcı (User modeli ile ilişki)
 
-5. **Production (Üretim)**
-   - team: Üretici takım (Team modeli ile ilişki)
+5. **Üretim (Production)**
+   - team: Üreten takım (Team modeli ile ilişki)
    - part: Üretilen parça (Part modeli ile ilişki)
    - quantity: Üretim miktarı
    - created_at: Üretim tarihi
    - created_by: Üreten kullanıcı (User modeli ile ilişki)
 
 ### İş Kuralları
-
-- Her takım sadece kendi tipine uygun parçaları üretebilir
-- Montaj takımı parça üretemez, sadece uçak montajı yapabilir
-- Her parça belirli bir uçak modeline özgüdür ve başka modellerde kullanılamaz
-- Her uçak modeli için belirli sayıda ve tipte parça gereklidir
-- Bir parça bir uçakta kullanıldığında stoktan düşer
+- Her takım yalnızca kendi tipine uygun parçaları üretebilir
+- Montaj takımı parça üretemez, yalnızca uçak montajı yapabilir
+- Her parça belirli bir uçak modeline özgüdür ve diğer modellerde kullanılamaz
+- Her uçak modeli belirli sayıda ve tipte parça gerektirir
+- Bir parça uçakta kullanıldığında stoktan düşülür
 - Stok seviyesi minimum seviyenin altına düştüğünde uyarı verilir
 
-## 🔒 Güvenlik Önlemleri
+### Veritabanı İlişki Diyagramı
 
+![Veritabanı İlişki Diyagramı](docs/diagrams/database_diagram.png)
+
+*Şekil 1: Tüm veritabanı modelleri arasındaki ilişkileri gösteren Veritabanı İlişki Diyagramı*
+
+### Uçak Üretim Durum Diyagramı
+
+![Uçak Üretim Durum Diyagramı](docs/diagrams/state_diagram.png)
+
+*Şekil 2: Bir uçağın üretim sürecinde geçtiği çeşitli durumları gösteren Durum Diyagramı*
+
+### Montaj Süreci Aktivite Diyagramı
+
+![Montaj Süreci Aktivite Diyagramı](docs/diagrams/activity_diagram.png)
+
+*Şekil 3: Uçak montaj sürecinin iş akışını gösteren Aktivite Diyagramı*
+
+## 🔒 Güvenlik Önlemleri
 - Django'nun yerleşik güvenlik özellikleri (CSRF koruması, XSS koruması, vb.)
 - Kullanıcı kimlik doğrulama ve yetkilendirme
 - Form doğrulama ve veri temizleme
 - Güvenli şifre politikaları
-- HTTPS desteği (production ortamında)
+- HTTPS desteği (üretim ortamında)
 - API erişim kontrolü
 
 ## ⚡ Performans Optimizasyonları
-
 - Veritabanı sorgu optimizasyonları
 - Önbellek kullanımı
-- Lazy loading
-- Sayfalama (pagination)
+- Tembel yükleme (Lazy loading)
+- Sayfalama
 - Asenkron AJAX istekleri
 - Statik dosya sıkıştırma ve CDN desteği
 
 ## 🤝 Katkıda Bulunma
-
 1. Projeyi fork edin
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Değişikliklerinizi commit edin (`git commit -m 'Add some amazing feature'`)
-4. Branch'inizi push edin (`git push origin feature/amazing-feature`)
+2. Özellik dalı oluşturun (`git checkout -b özellik/muhteşem-özellik`)
+3. Değişiklikleri commit edin (`git commit -m 'Bazı muhteşem özellikler ekle'`)
+4. Dalı push edin (`git push origin özellik/muhteşem-özellik`)
 5. Pull Request açın
 
 ## 📄 Lisans
+Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
 
-Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+## 🐳 Docker Kullanımı ve Sorun Giderme
 
----
-
-## Contact | İletişim
-
-### English
-For questions and support, please contact:
-- Project Manager: [@omerfeyzioglu](https://github.com/omerfeyzioglu)
-- Project Repository: [https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application](https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application)
-
-### Türkçe
-Sorularınız ve destek için lütfen iletişime geçin:
-- Proje Yöneticisi: [@omerfeyzioglu](https://github.com/omerfeyzioglu)
-- Proje Deposu: [https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application](https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application)
-
-# Docker Kullanımı ve Karşılaşılabilecek Sorunlar
-
-## Docker Kurulumu
-Projenin Docker ile çalıştırılması için aşağıdaki adımları izleyin:
+### Docker Kurulumu
+Projeyi Docker ile çalıştırmak için aşağıdaki adımları izleyin:
 
 1. **Docker ve Docker Compose Kurulumu**: Docker ve Docker Compose'un sisteminizde kurulu olduğundan emin olun.
 
@@ -847,25 +863,25 @@ Projenin Docker ile çalıştırılması için aşağıdaki adımları izleyin:
 
 7. **Uygulamayı Kontrol Etme**: Tarayıcınızda `http://localhost:8000` adresine gidin.
 
-## Karşılaşılabilecek Sorunlar
+### Karşılaşılabilecek Sorunlar
 
-### 1. TTY Hatası
+#### 1. TTY Hatası
 - **Hata Mesajı**: "Superuser creation skipped due to not running in a TTY."
 - **Çözüm**: Windows kullanıcıları için `winpty` komutunu kullanarak superuser oluşturun:
   ```bash
   winpty docker-compose exec web python manage.py createsuperuser
   ```
 
-### 2. Docker Compose Versiyon Uyarısı
+#### 2. Docker Compose Versiyon Uyarısı
 - **Hata Mesajı**: "version is obsolete"
 - **Çözüm**: Bu bir uyarıdır ve sistemi etkilemez. Docker Compose'un güncel versiyonunu kullanmaya devam edebilirsiniz.
 
-### 3. URL Namespace Uyarıları
+#### 3. URL Namespace Uyarıları
 - **Hata Mesajı**: "URL namespace 'admin' isn't unique."
 - **Açıklama**: Bu uyarı, URL çakışmalarını gösterir ancak uygulamanın çalışmasını etkilemez.
-- **Çözüm**: Uygulamanın çalışmasını engellemediği için görmezden gelinebilir. İsterseniz, projenin ilerleyen aşamalarında URLs düzenini optimize edebilirsiniz.
+- **Çözüm**: Uygulamanın çalışmasını engellemediği için görmezden gelinebilir. İsterseniz, projenin ilerleyen aşamalarında URL yapısını optimize edebilirsiniz.
 
-### 4. Windows MINGW64 Terminal Sorunları
+#### 4. Windows MINGW64 Terminal Sorunları
 - **Sorun**: Windows Git Bash veya MINGW64 terminali kullanırken TTY veya interaktif shell sorunları yaşanabilir.
 - **Çözüm**:
    * Windows CMD veya PowerShell kullanın
@@ -875,8 +891,22 @@ Projenin Docker ile çalıştırılması için aşağıdaki adımları izleyin:
    winpty docker-compose exec web python manage.py createsuperuser
    ```
 
-## Ek Bilgiler
+### Ek Bilgiler
 - Container durumunu kontrol etmek için: `docker-compose ps`
 - Container loglarını görüntülemek için: `docker-compose logs -f web`
 - Bir sorun olduğunda containerleri yeniden başlatmak için: `docker-compose down && docker-compose up -d`
-- Docker ile çalışırken, her zaman terminal veya komut istemcisinde hata mesajlarını kontrol edin. 
+- Docker ile çalışırken, her zaman terminal veya komut istemcisinde hata mesajlarını kontrol edin.
+
+---
+
+## Contact | İletişim
+
+### English
+For questions and support, please contact:
+- Project Manager: [@omerfeyzioglu](https://github.com/omerfeyzioglu)
+- Project Repository: [https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application](https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application)
+
+### Türkçe
+Sorularınız ve destek için lütfen iletişime geçin:
+- Proje Yöneticisi: [@omerfeyzioglu](https://github.com/omerfeyzioglu)
+- Proje Deposu: [https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application](https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application) 

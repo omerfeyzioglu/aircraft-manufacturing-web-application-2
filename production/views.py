@@ -4,7 +4,8 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import F, Sum, Count, Q
-from .models import Part, Team, Aircraft, Production, AircraftPart, TEAM_TYPES, AIRCRAFT_TYPES, REQUIRED_PARTS
+from .models import Part, Team, Aircraft, Production, AircraftPart
+from .models.constants import TEAM_TYPES, AIRCRAFT_TYPES, REQUIRED_PARTS
 from .serializers import (
     PartSerializer, TeamSerializer, AircraftSerializer,
     ProductionSerializer, AircraftPartSerializer, UserSerializer
@@ -25,6 +26,7 @@ from django.contrib.auth import login as auth_login
 from django.contrib.auth.views import LoginView
 from django.core.serializers.json import DjangoJSONEncoder
 from django.contrib.auth import authenticate
+from django.db import transaction
 
 # Template views
 @login_required
@@ -216,32 +218,50 @@ def add_production(request):
         team_id = request.POST.get('team')
         
         try:
-            part = Part.objects.get(id=part_id)
-            team = Team.objects.get(id=team_id)
-            quantity = int(quantity)
-            
-            if quantity <= 0:
-                return JsonResponse({'error': 'Quantity must be positive'}, status=400)
-            
-            # Montaj takımları parça üretemez
-            if team.team_type == 'ASSEMBLY':
-                return JsonResponse({'error': 'Assembly teams cannot produce parts'}, status=403)
-            
-            # Check if team has members
-            if team.members.count() == 0:
-                return JsonResponse({'error': 'Team has no members. Please add members to the team.'}, status=403)
-            
-            # Takım tipi ve parça tipinin uyumlu olması gerekir
-            if team.team_type != part.team_type:
-                return JsonResponse({'error': f'{team.get_team_type_display()} team cannot produce {part.get_team_type_display()} parts'}, status=403)
-            
-            # Create production record
-            production = Production.objects.create(
-                team=team,
-                part=part,
-                quantity=quantity,
-                created_by=request.user
-            )
+            with transaction.atomic():
+                part = Part.objects.get(id=part_id)
+                team = Team.objects.get(id=team_id)
+                quantity = int(quantity)
+                
+                # Mevcut stok değerini saklayalım
+                old_stock = part.stock
+                
+                if quantity <= 0:
+                    return JsonResponse({'error': 'Quantity must be positive'}, status=400)
+                
+                # Montaj takımları parça üretemez
+                if team.team_type == 'ASSEMBLY':
+                    return JsonResponse({'error': 'Assembly teams cannot produce parts'}, status=403)
+                
+                # Check if team has members
+                if team.members.count() == 0:
+                    return JsonResponse({'error': 'Team has no members. Please add members to the team.'}, status=403)
+                
+                # Takım tipi ve parça tipinin uyumlu olması gerekir
+                if team.team_type != part.team_type:
+                    return JsonResponse({'error': f'{team.get_team_type_display()} team cannot produce {part.get_team_type_display()} parts'}, status=403)
+                
+                # Create production record
+                production = Production.objects.create(
+                    team=team,
+                    part=part,
+                    quantity=quantity,
+                    created_by=request.user
+                )
+                
+                # Güncel stok değerini al
+                part.refresh_from_db()
+                
+                # Stok değişmediyse direkt SQL ile güncelleyelim
+                if part.stock == old_stock:
+                    # SQL direkt güncelleme yap
+                    from django.db import connection
+                    cursor = connection.cursor()
+                    cursor.execute(
+                        f"UPDATE {part._meta.db_table} SET stock = stock + %s, is_low_stock = CASE WHEN (stock + %s) < minimum_stock THEN True ELSE False END WHERE id = %s",
+                        [quantity, quantity, part.id]
+                    )
+                    part.refresh_from_db()
             
             return JsonResponse({
                 'success': True,
@@ -257,58 +277,8 @@ def add_production(request):
             return JsonResponse({'error': 'Invalid quantity'}, status=400)
         except ValidationError as e:
             return JsonResponse({'error': str(e)}, status=400)
-    
-    # Check if user is in a team
-    user_team = request.user.team_members.first()
-    if not user_team:
-        return JsonResponse({'error': 'User is not assigned to a team'}, status=403)
-    
-    # Assembly teams cannot produce parts
-    if user_team.team_type == 'ASSEMBLY':
-        return JsonResponse({'error': 'Assembly teams cannot produce parts'}, status=403)
-    
-    # Check if team has members
-    if user_team.members.count() == 0:
-        return JsonResponse({'error': 'Assembly team has no members. Please add members to the team.'}, status=403)
-    
-    part_id = request.POST.get('part')
-    quantity = request.POST.get('quantity')
-    
-    try:
-        part = Part.objects.get(id=part_id)
-        quantity = int(quantity)
-        
-        if quantity <= 0:
-            return JsonResponse({'error': 'Quantity must be positive'}, status=400)
-        
-        # Check if team type matches part team type
-        if user_team.team_type != part.team_type:
-            return JsonResponse({'error': f'Your team ({user_team.get_team_type_display()}) cannot produce {part.get_team_type_display()} parts'}, status=403)
-        
-        # Check if part aircraft type is valid
-        if part.team_type not in REQUIRED_PARTS[part.aircraft_type]:
-            return JsonResponse({'error': 'Invalid part type for this aircraft type'}, status=400)
-        
-        # Create production record
-        production = Production.objects.create(
-            team=user_team,
-            part=part,
-            quantity=quantity,
-            created_by=request.user
-        )
-        
-        return JsonResponse({
-            'success': True,
-            'message': f'Successfully produced {quantity} {part.name}',
-            'new_stock': part.stock
-        })
-        
-    except Part.DoesNotExist:
-        return JsonResponse({'error': 'Part not found'}, status=404)
-    except ValueError:
-        return JsonResponse({'error': 'Invalid quantity'}, status=400)
-    except ValidationError as e:
-        return JsonResponse({'error': str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': f'An error occurred: {str(e)}'}, status=500)
 
 @login_required
 def add_aircraft_part(request):
@@ -501,7 +471,7 @@ class PartViewSet(viewsets.ModelViewSet):
     Parçaların listelenmesi, oluşturulması, güncellenmesi ve silinmesi işlemlerini sağlar.
     Takım tipine, uçak tipine ve stok durumuna göre filtreleme yapılabilir.
     """
-    queryset = Part.objects.all()
+    queryset = Part.objects.all().select_related()
     serializer_class = PartSerializer
     permission_classes = [IsAuthenticated]
     
@@ -512,7 +482,7 @@ class PartViewSet(viewsets.ModelViewSet):
         Diğer takım üyeleri sadece kendi takım tiplerine ait parçaları görebilir.
         Süper kullanıcı tüm parçaları görebilir.
         """
-        queryset = Part.objects.all()
+        queryset = self.queryset
         
         # Takım tipine göre filtrele
         team_type = self.request.query_params.get('team_type')
@@ -547,18 +517,25 @@ class PartViewSet(viewsets.ModelViewSet):
         Parça oluşturma işlemini gerçekleştirir.
         Süper kullanıcılar için takım kontrolü yapmaz.
         """
+        # Request verisini değiştirmek için kopyalayalım
+        request_data = request.data.copy()
+        
         # Süper kullanıcı her türlü parça ekleyebilir
         if request.user.is_superuser:
             # Auto-generate part name based on team type and aircraft type
-            team_type = request.data.get('team_type')
-            aircraft_type = request.data.get('aircraft_type')
+            team_type = request_data.get('team_type')
+            aircraft_type = request_data.get('aircraft_type')
             
             if team_type and aircraft_type:
                 # Create a temporary Part instance to get the expected name
                 temp_part = Part(team_type=team_type, aircraft_type=aircraft_type)
-                request.data['name'] = temp_part.expected_name
+                request_data['name'] = temp_part.expected_name
             
-            return super().create(request, *args, **kwargs)
+            serializer = self.get_serializer(data=request_data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         
         # Get user's team
         user_team = request.user.team_members.first()
@@ -578,7 +555,7 @@ class PartViewSet(viewsets.ModelViewSet):
             )
         
         # Kullanıcı sadece kendi takım tipine uygun parça ekleyebilir
-        team_type = request.data.get('team_type')
+        team_type = request_data.get('team_type')
         if team_type != user_team.team_type:
             return Response(
                 {'detail': f'Sadece kendi takım tipiniz ({user_team.get_team_type_display()}) için parça ekleyebilirsiniz.'},
@@ -586,43 +563,53 @@ class PartViewSet(viewsets.ModelViewSet):
             )
         
         # Auto-generate part name based on team type and aircraft type
-        aircraft_type = request.data.get('aircraft_type')
+        aircraft_type = request_data.get('aircraft_type')
         if team_type and aircraft_type:
             # Create a temporary Part instance to get the expected name
             temp_part = Part(team_type=team_type, aircraft_type=aircraft_type)
-            request.data['name'] = temp_part.expected_name
+            request_data['name'] = temp_part.expected_name
         
-        return super().create(request, *args, **kwargs)
+        serializer = self.get_serializer(data=request_data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
     
     def update(self, request, *args, **kwargs):
         """
         Parça güncelleme işlemini gerçekleştirir.
         Süper kullanıcı için izin kontrolü yapmaz.
         """
+        # Request verisini değiştirmek için kopyalayalım
+        request_data = request.data.copy()
+        
         # Süper kullanıcı için kontrol yapma
         if request.user.is_superuser:
             # Don't allow changing team_type or aircraft_type
             instance = self.get_object()
-            if 'team_type' in request.data and request.data['team_type'] != instance.team_type:
+            if 'team_type' in request_data and request_data['team_type'] != instance.team_type:
                 return Response(
                     {'detail': 'Parçanın takım tipini değiştiremezsiniz.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
                 
-            if 'aircraft_type' in request.data and request.data['aircraft_type'] != instance.aircraft_type:
+            if 'aircraft_type' in request_data and request_data['aircraft_type'] != instance.aircraft_type:
                 return Response(
                     {'detail': 'Parçanın uçak tipini değiştiremezsiniz.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
             # Don't allow changing name
-            if 'name' in request.data and request.data['name'] != instance.name:
+            if 'name' in request_data and request_data['name'] != instance.name:
                 return Response(
                     {'detail': 'Parçanın adını değiştiremezsiniz.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
-            return super().update(request, *args, **kwargs)
+            serializer = self.get_serializer(instance, data=request_data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response(serializer.data)
         
         # Get user's team
         user_team = request.user.team_members.first()
@@ -643,26 +630,29 @@ class PartViewSet(viewsets.ModelViewSet):
             )
         
         # Don't allow changing team_type or aircraft_type
-        if 'team_type' in request.data and request.data['team_type'] != instance.team_type:
+        if 'team_type' in request_data and request_data['team_type'] != instance.team_type:
             return Response(
                 {'detail': 'Parçanın takım tipini değiştiremezsiniz.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
             
-        if 'aircraft_type' in request.data and request.data['aircraft_type'] != instance.aircraft_type:
+        if 'aircraft_type' in request_data and request_data['aircraft_type'] != instance.aircraft_type:
             return Response(
                 {'detail': 'Parçanın uçak tipini değiştiremezsiniz.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
         # Don't allow changing name
-        if 'name' in request.data and request.data['name'] != instance.name:
+        if 'name' in request_data and request_data['name'] != instance.name:
             return Response(
                 {'detail': 'Parçanın adını değiştiremezsiniz.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        return super().update(request, *args, **kwargs)
+        serializer = self.get_serializer(instance, data=request_data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data)
     
     @extend_schema(
         summary="Düşük stoklu parçalar",
@@ -908,9 +898,19 @@ class TeamViewSet(viewsets.ModelViewSet):
                 {'detail': 'Takımda üye bulunmamaktadır. Takıma üye ekleyin.'},
                 status=status.HTTP_403_FORBIDDEN
             )
+            
+        # Kullanıcının bu takımda olup olmadığını kontrol et
+        if not request.user.is_superuser and not team.members.filter(id=request.user.id).exists():
+            return Response(
+                {'detail': 'Bu takımda değilsiniz ve bu takım adına üretim yapamazsınız.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         try:
             part = Part.objects.get(id=part_id)
+            
+            # Mevcut stok değerini al (başlangıç değeri)
+            old_stock = part.stock
             
             # Check if team can produce this part type
             if not team.can_produce_part(part):
@@ -920,22 +920,53 @@ class TeamViewSet(viewsets.ModelViewSet):
                 )
             
             # Create production record
-            production = Production.objects.create(
-                team=team,
-                part=part,
-                quantity=quantity,
-                created_by=request.user
-            )
+            with transaction.atomic():
+                # 1. Üretim kaydı oluştur (stok artışı yapılmadan)
+                production = Production.objects.create(
+                    team=team,
+                    part=part,
+                    quantity=quantity,
+                    created_by=request.user
+                )
+                
+                # 2. Güncel stok değerini al ve artışı kontrol et
+                part.refresh_from_db()
+                
+                # 3. Eğer stok değişmediyse, direkt SQL ile güncelle
+                if part.stock == old_stock:
+                    # SQL direkt güncelleme yap
+                    from django.db import connection
+                    cursor = connection.cursor()
+                    table_name = part._meta.db_table
+                    
+                    # Stok artırıp low stock durumunu güncelleyen SQL sorgusu
+                    query = f"""
+                        UPDATE {table_name}
+                        SET stock = stock + %s,
+                            is_low_stock = CASE WHEN (stock + %s) < minimum_stock THEN True ELSE False END
+                        WHERE id = %s
+                    """
+                    cursor.execute(query, [quantity, quantity, part_id])
+                    
+                    # Parça nesnesini yenile
+                    part.refresh_from_db()
             
             return Response({
                 'detail': 'Parça başarıyla üretildi.',
-                'new_stock': part.stock
+                'new_stock': part.stock,
+                'old_stock': old_stock,
+                'production_id': production.id
             })
             
         except Part.DoesNotExist:
             return Response(
                 {'detail': 'Parça bulunamadı.'},
                 status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {'detail': f'Bir hata oluştu: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
     @extend_schema(
@@ -1684,4 +1715,86 @@ def claim_aircraft(request, pk):
     return JsonResponse({
         'success': True,
         'message': f'{aircraft.get_aircraft_type_display()} uçağı takımınıza başarıyla atandı.'
-    }) 
+    })
+
+@login_required
+def user_add_production(request):
+    """Normal kullanıcılar için üretim kaydı oluşturma fonksiyonu"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+    
+    # Süper kullanıcılar bu endpoint'i kullanamaz
+    if request.user.is_superuser:
+        return JsonResponse({'error': 'Süper kullanıcılar için farklı bir endpoint kullanılmalıdır.'}, status=400)
+    
+    # Kullanıcının takımını kontrol et
+    user_team = request.user.team_members.first()
+    if not user_team:
+        return JsonResponse({'error': 'User is not assigned to a team'}, status=403)
+    
+    # Assembly teams cannot produce parts
+    if user_team.team_type == 'ASSEMBLY':
+        return JsonResponse({'error': 'Assembly teams cannot produce parts'}, status=403)
+    
+    # Check if team has members
+    if user_team.members.count() == 0:
+        return JsonResponse({'error': 'Team has no members. Please add members to the team.'}, status=403)
+    
+    part_id = request.POST.get('part')
+    quantity = request.POST.get('quantity')
+    
+    try:
+        with transaction.atomic():
+            part = Part.objects.get(id=part_id)
+            quantity = int(quantity)
+            
+            # Mevcut stok değerini saklayalım
+            old_stock = part.stock
+            
+            if quantity <= 0:
+                return JsonResponse({'error': 'Quantity must be positive'}, status=400)
+            
+            # Check if team type matches part team type
+            if user_team.team_type != part.team_type:
+                return JsonResponse({'error': f'Your team ({user_team.get_team_type_display()}) cannot produce {part.get_team_type_display()} parts'}, status=403)
+            
+            # Check if part aircraft type is valid
+            if part.team_type not in REQUIRED_PARTS[part.aircraft_type]:
+                return JsonResponse({'error': 'Invalid part type for this aircraft type'}, status=400)
+            
+            # Create production record
+            production = Production.objects.create(
+                team=user_team,
+                part=part,
+                quantity=quantity,
+                created_by=request.user
+            )
+            
+            # Güncel stok değerini al
+            part.refresh_from_db()
+            
+            # Stok değişmediyse direkt SQL ile güncelleyelim
+            if part.stock == old_stock:
+                # SQL direkt güncelleme yap
+                from django.db import connection
+                cursor = connection.cursor()
+                cursor.execute(
+                    f"UPDATE {part._meta.db_table} SET stock = stock + %s, is_low_stock = CASE WHEN (stock + %s) < minimum_stock THEN True ELSE False END WHERE id = %s",
+                    [quantity, quantity, part_id]
+                )
+                part.refresh_from_db()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Successfully produced {quantity} {part.name}',
+            'new_stock': part.stock
+        })
+        
+    except Part.DoesNotExist:
+        return JsonResponse({'error': 'Part not found'}, status=404)
+    except ValueError:
+        return JsonResponse({'error': 'Invalid quantity'}, status=400)
+    except ValidationError as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'An error occurred: {str(e)}'}, status=500) 

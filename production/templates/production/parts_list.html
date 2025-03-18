@@ -147,16 +147,18 @@ $(document).ready(function() {
                 render: function(data) {
                     return {
                         'BODY': 'Gövde Takımı',
-                        'ELECTRONIC': 'Elektronik Takımı',
-                        'ENGINE': 'Motor Takımı'
+                        'WING': 'Kanat Takımı',
+                        'TAIL': 'Kuyruk Takımı',
+                        'AVIONICS': 'Aviyonik Takımı',
+                        'ASSEMBLY': 'Montaj Takımı'
                     }[data] || data;
                 }
             },
             { data: 'stock' },
             {
                 data: 'stock',
-                render: function(data) {
-                    if (data < 5) {
+                render: function(data, type, row) {
+                    if (row.is_low_stock) {
                         return '<span class="badge bg-danger">Düşük Stok</span>';
                     }
                     return '<span class="badge bg-success">Yeterli</span>';
@@ -224,19 +226,65 @@ $(document).ready(function() {
         var partId = $('#producePartForm input[name="part_id"]').val();
         var quantity = $('#producePartForm input[name="quantity"]').val();
         
+        // Önce mevcut stok değerini alalım
+        var currentStock = null;
         $.ajax({
-            url: '/api/teams/produce_part/',
+            url: '/api/parts/' + partId + '/',
+            method: 'GET',
+            async: false,
+            success: function(data) {
+                currentStock = data.stock;
+                console.log('Üretim öncesi stok:', currentStock);
+            }
+        });
+        
+        // Normal kullanıcı mı yoksa API ile mi üretim yapacağımızı kontrol edelim
+        var productionUrl = '{% if user.is_superuser %}/api/teams/{{ user.team_members.first.id }}/produce_part/{% else %}/user-add-production/{% endif %}';
+        
+        $.ajax({
+            url: productionUrl,
             method: 'POST',
             data: {
                 part: partId,
                 quantity: quantity
             },
-            success: function() {
+            success: function(response) {
                 $('#producePartModal').modal('hide');
-                table.ajax.reload();
+                
+                // Üretim sonrası stok değerini kontrol edelim
+                var newStock = response.new_stock;
+                console.log('Üretim sonrası stok:', newStock);
+                console.log('Fark:', newStock - currentStock, 'Beklenen:', parseInt(quantity));
+                
+                var successMessage = 'Başarılı: ' + quantity + ' adet parça üretildi. Stok: ' + 
+                                    currentStock + ' -> ' + newStock +
+                                    ' (Artış: ' + (newStock - currentStock) + ')';
+                
+                alert(successMessage);
+                
+                // DataTable'ı yeniden yüklemek yerine sadece ilgili satırı güncelle
+                var table = $('#partsTable').DataTable();
+                var row = table.row(function(idx, data, node) {
+                    return data.id == partId;
+                });
+                
+                if (row.length > 0) {
+                    var rowData = row.data();
+                    rowData.stock = newStock;
+                    rowData.is_low_stock = newStock < rowData.minimum_stock;
+                    row.data(rowData).draw(false);
+                } else {
+                    // Satır bulunamazsa tabloyu komple yenile
+                    table.ajax.reload();
+                }
             },
             error: function(xhr) {
-                alert('Hata: ' + xhr.responseJSON.detail);
+                var errorMsg = xhr.responseJSON && xhr.responseJSON.detail 
+                    ? xhr.responseJSON.detail 
+                    : (xhr.responseJSON && xhr.responseJSON.error
+                        ? xhr.responseJSON.error
+                        : 'Bir hata oluştu');
+                alert('Hata: ' + errorMsg);
             }
         });
     });

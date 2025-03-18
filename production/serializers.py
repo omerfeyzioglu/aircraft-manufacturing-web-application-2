@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Team, Part, Aircraft, Production, AircraftPart
+from .models import Team, Part, Aircraft, AircraftPart, Production
 from drf_spectacular.utils import extend_schema_field
 
 class UserSerializer(serializers.ModelSerializer):

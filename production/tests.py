@@ -3,7 +3,8 @@ from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
-from .models import Team, Part, Aircraft, Production, AircraftPart, TEAM_TYPES, AIRCRAFT_TYPES, REQUIRED_PARTS
+from .models import Team, Part, Aircraft, Production, AircraftPart
+from .models.constants import TEAM_TYPES, AIRCRAFT_TYPES, REQUIRED_PARTS
 from django.utils import timezone
 import json
 

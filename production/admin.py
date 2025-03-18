@@ -3,7 +3,8 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from django.utils.html import format_html
 from django.db.models import Count, Sum, Q
-from .models import Team, Part, Aircraft, Production, AircraftPart, TEAM_TYPES
+from .models import Team, Part, Aircraft, Production, AircraftPart
+from .models.constants import TEAM_TYPES
 
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'get_team')
