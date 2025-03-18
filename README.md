@@ -137,8 +137,8 @@ Baykar Aircraft Production Tracking System is a comprehensive web application de
 #### Docker Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/user/aircraft-manufacturing.git
-   cd aircraft-manufacturing
+   git clone https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application.git
+   cd aircraft-manufacturing-web-application
    ```
 
 2. Start containers with Docker Compose:
@@ -492,8 +492,8 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
 
 1. Projeyi klonlayın:
    ```bash
-   git clone https://github.com/kullanici/hava-araci-uretim.git
-   cd hava-araci-uretim
+   git clone https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application.git
+   cd aircraft-manufacturing-web-application
    ```
 
 2. Docker Compose ile konteynerları başlatın:
@@ -511,7 +511,13 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
    docker-compose exec web python manage.py createsuperuser
    ```
 
-5. Tarayıcınızda `http://localhost:8000/` adresine giderek uygulamayı görüntüleyin.
+5. Statik dosyaları toplama:
+   ```bash
+   docker-compose exec web python manage.py collectstatic --noinput
+   ```
+
+6. Uygulamayı kontrol etme:
+   Tarayıcınızda `http://localhost:8000` adresine gidin.
 
 ## 📖 Kullanım
 
@@ -721,9 +727,9 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 
 ## İletişim
 
-Proje Yöneticisi - [@kullanici](https://github.com/kullanici)
+Proje Yöneticisi - [@omerfeyzioglu](https://github.com/omerfeyzioglu)
 
-Proje Linki: [https://github.com/kullanici/hava-araci-uretim](https://github.com/kullanici/hava-araci-uretim)
+Proje Linki: [https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application](https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application)
 
 # Docker Kullanımı ve Karşılaşılabilecek Sorunlar
 
@@ -776,8 +782,21 @@ Projenin Docker ile çalıştırılması için aşağıdaki adımları izleyin:
 
 ### 3. URL Namespace Uyarıları
 - **Hata Mesajı**: "URL namespace 'admin' isn't unique."
-- **Çözüm**: Bu uyarı, URL çakışmalarını gösterir ancak uygulamanın çalışmasını etkilemez. Geliştirme sırasında dikkate alabilirsiniz.
+- **Açıklama**: Bu uyarı, URL çakışmalarını gösterir ancak uygulamanın çalışmasını etkilemez. 
+- **Çözüm**: Uygulamanın çalışmasını engellemediği için görmezden gelinebilir. İsterseniz, projenin ilerleyen aşamalarında URLs düzenini optimize edebilirsiniz.
+
+### 4. Windows MINGW64 Terminal Sorunları
+- **Sorun**: Windows Git Bash veya MINGW64 terminali kullanırken TTY veya interaktif shell sorunları yaşanabilir.
+- **Çözüm**: 
+  - Windows CMD veya PowerShell kullanın
+  - Veya `winpty` önekini kullanın:
+  ```bash
+  winpty docker-compose exec web bash
+  winpty docker-compose exec web python manage.py createsuperuser
+  ```
 
 ## Ek Bilgiler
-- Docker ile çalışırken, her zaman terminal veya komut istemcisinde hata mesajlarını kontrol edin.
-- Gerekirse, Docker ve Docker Compose belgelerine başvurun. 
+- Container durumunu kontrol etmek için: `docker-compose ps`
+- Container loglarını görüntülemek için: `docker-compose logs -f web`
+- Bir sorun olduğunda containerleri yeniden başlatmak için: `docker-compose down && docker-compose up -d`
+- Docker ile çalışırken, her zaman terminal veya komut istemcisinde hata mesajlarını kontrol edin. 
