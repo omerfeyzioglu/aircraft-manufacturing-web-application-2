@@ -156,7 +156,46 @@ Baykar Aircraft Production Tracking System is a comprehensive web application de
    docker-compose exec web python manage.py createsuperuser
    ```
 
-5. Visit `http://localhost:8000/` in your browser to view the application.
+5. Collect static files:
+   ```bash
+   docker-compose exec web python manage.py collectstatic --noinput
+   ```
+
+6. Visit `http://localhost:8000/` in your browser to view the application.
+
+### Docker Troubleshooting
+
+#### 1. TTY Error
+- **Error Message**: "Superuser creation skipped due to not running in a TTY."
+- **Solution**: For Windows users, use the `winpty` prefix to create a superuser:
+  ```bash
+  winpty docker-compose exec web python manage.py createsuperuser
+  ```
+
+#### 2. Docker Compose Version Warning
+- **Error Message**: "version is obsolete"
+- **Solution**: This is just a warning and doesn't affect the system. You can continue using the current version of Docker Compose.
+
+#### 3. URL Namespace Warnings
+- **Error Message**: "URL namespace 'admin' isn't unique."
+- **Description**: This warning indicates URL conflicts but doesn't affect the application's functionality.
+- **Solution**: It can be ignored as it doesn't prevent the application from working. If desired, you can optimize the URL structure in later stages of the project.
+
+#### 4. Windows MINGW64 Terminal Issues
+- **Problem**: When using Windows Git Bash or MINGW64 terminal, you may experience TTY or interactive shell issues.
+- **Solution**: 
+  - Use Windows CMD or PowerShell
+  - Or use the `winpty` prefix:
+  ```bash
+  winpty docker-compose exec web bash
+  winpty docker-compose exec web python manage.py createsuperuser
+  ```
+
+#### Additional Information
+- To check container status: `docker-compose ps`
+- To view container logs: `docker-compose logs -f web`
+- To restart containers when there's an issue: `docker-compose down && docker-compose up -d`
+- Always check error messages in the terminal or command prompt when working with Docker.
 
 ### Usage
 
