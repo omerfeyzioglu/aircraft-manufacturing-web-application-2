@@ -723,4 +723,61 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 
 Proje Yöneticisi - [@kullanici](https://github.com/kullanici)
 
-Proje Linki: [https://github.com/kullanici/hava-araci-uretim](https://github.com/kullanici/hava-araci-uretim) 
+Proje Linki: [https://github.com/kullanici/hava-araci-uretim](https://github.com/kullanici/hava-araci-uretim)
+
+# Docker Kullanımı ve Karşılaşılabilecek Sorunlar
+
+## Docker Kurulumu
+Projenin Docker ile çalıştırılması için aşağıdaki adımları izleyin:
+
+1. **Docker ve Docker Compose Kurulumu**: Docker ve Docker Compose'un sisteminizde kurulu olduğundan emin olun.
+
+2. **Proje Klasörüne Gitme**: Terminal veya komut istemcisinde proje klasörüne gidin.
+
+3. **Container'ları Başlatma**:
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Veritabanı Migrasyonlarını Uygulama**:
+   ```bash
+   docker-compose exec web python manage.py migrate
+   ```
+
+5. **Superuser Oluşturma**:
+   Windows kullanıcıları için:
+   ```bash
+   winpty docker-compose exec web python manage.py createsuperuser
+   ```
+   Diğer işletim sistemleri için:
+   ```bash
+   docker-compose exec web python manage.py createsuperuser
+   ```
+
+6. **Statik Dosyaları Toplama**:
+   ```bash
+   docker-compose exec web python manage.py collectstatic --noinput
+   ```
+
+7. **Uygulamayı Kontrol Etme**: Tarayıcınızda `http://localhost:8000` adresine gidin.
+
+## Karşılaşılabilecek Sorunlar
+
+### 1. TTY Hatası
+- **Hata Mesajı**: "Superuser creation skipped due to not running in a TTY."
+- **Çözüm**: Windows kullanıcıları için `winpty` komutunu kullanarak superuser oluşturun:
+  ```bash
+  winpty docker-compose exec web python manage.py createsuperuser
+  ```
+
+### 2. Docker Compose Versiyon Uyarısı
+- **Hata Mesajı**: "version is obsolete"
+- **Çözüm**: Bu bir uyarıdır ve sistemi etkilemez. Docker Compose'un güncel versiyonunu kullanmaya devam edebilirsiniz.
+
+### 3. URL Namespace Uyarıları
+- **Hata Mesajı**: "URL namespace 'admin' isn't unique."
+- **Çözüm**: Bu uyarı, URL çakışmalarını gösterir ancak uygulamanın çalışmasını etkilemez. Geliştirme sırasında dikkate alabilirsiniz.
+
+## Ek Bilgiler
+- Docker ile çalışırken, her zaman terminal veya komut istemcisinde hata mesajlarını kontrol edin.
+- Gerekirse, Docker ve Docker Compose belgelerine başvurun. 
