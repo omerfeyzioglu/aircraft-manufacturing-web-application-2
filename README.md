@@ -92,8 +92,8 @@ Baykar Aircraft Production Tracking System is a comprehensive web application de
 #### Local Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/user/aircraft-manufacturing.git
-   cd aircraft-manufacturing
+   git clone https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application.git
+   cd aircraft-manufacturing-web-application
    ```
 
 2. Create and activate virtual environment:
@@ -156,46 +156,7 @@ Baykar Aircraft Production Tracking System is a comprehensive web application de
    docker-compose exec web python manage.py createsuperuser
    ```
 
-5. Collect static files:
-   ```bash
-   docker-compose exec web python manage.py collectstatic --noinput
-   ```
-
-6. Visit `http://localhost:8000/` in your browser to view the application.
-
-### Docker Troubleshooting
-
-#### 1. TTY Error
-- **Error Message**: "Superuser creation skipped due to not running in a TTY."
-- **Solution**: For Windows users, use the `winpty` prefix to create a superuser:
-  ```bash
-  winpty docker-compose exec web python manage.py createsuperuser
-  ```
-
-#### 2. Docker Compose Version Warning
-- **Error Message**: "version is obsolete"
-- **Solution**: This is just a warning and doesn't affect the system. You can continue using the current version of Docker Compose.
-
-#### 3. URL Namespace Warnings
-- **Error Message**: "URL namespace 'admin' isn't unique."
-- **Description**: This warning indicates URL conflicts but doesn't affect the application's functionality.
-- **Solution**: It can be ignored as it doesn't prevent the application from working. If desired, you can optimize the URL structure in later stages of the project.
-
-#### 4. Windows MINGW64 Terminal Issues
-- **Problem**: When using Windows Git Bash or MINGW64 terminal, you may experience TTY or interactive shell issues.
-- **Solution**: 
-  - Use Windows CMD or PowerShell
-  - Or use the `winpty` prefix:
-  ```bash
-  winpty docker-compose exec web bash
-  winpty docker-compose exec web python manage.py createsuperuser
-  ```
-
-#### Additional Information
-- To check container status: `docker-compose ps`
-- To view container logs: `docker-compose logs -f web`
-- To restart containers when there's an issue: `docker-compose down && docker-compose up -d`
-- Always check error messages in the terminal or command prompt when working with Docker.
+5. Visit `http://localhost:8000/` in your browser to view the application.
 
 ### Usage
 
@@ -386,6 +347,76 @@ baykar/
 ### License
 This project is licensed under the MIT License. See [LICENSE](LICENSE) file for details.
 
+### Docker Usage and Troubleshooting
+
+#### Docker Setup
+To run the project with Docker, follow these steps:
+
+1. **Install Docker and Docker Compose**: Make sure Docker and Docker Compose are installed on your system.
+
+2. **Navigate to the Project Directory**: In the terminal or command prompt, navigate to the project directory.
+
+3. **Start Containers**:
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Apply Database Migrations**:
+   ```bash
+   docker-compose exec web python manage.py migrate
+   ```
+
+5. **Create Superuser**:
+   For Windows users:
+   ```bash
+   winpty docker-compose exec web python manage.py createsuperuser
+   ```
+   For other operating systems:
+   ```bash
+   docker-compose exec web python manage.py createsuperuser
+   ```
+
+6. **Collect Static Files**:
+   ```bash
+   docker-compose exec web python manage.py collectstatic --noinput
+   ```
+
+7. **Check the Application**: Go to `http://localhost:8000` in your browser.
+
+#### Common Issues
+
+##### 1. TTY Error
+- **Error Message**: "Superuser creation skipped due to not running in a TTY."
+- **Solution**: For Windows users, use the `winpty` command to create a superuser:
+  ```bash
+  winpty docker-compose exec web python manage.py createsuperuser
+  ```
+
+##### 2. Docker Compose Version Warning
+- **Error Message**: "version is obsolete"
+- **Solution**: This is a warning and does not affect the system. You can continue using the current version of Docker Compose.
+
+##### 3. URL Namespace Warnings
+- **Error Message**: "URL namespace 'admin' isn't unique."
+- **Description**: This warning shows URL conflicts but does not affect the operation of the application.
+- **Solution**: Can be ignored as it doesn't prevent the application from working. If desired, you can optimize the URL structure in later stages of the project.
+
+##### 4. Windows MINGW64 Terminal Issues
+- **Issue**: When using Windows Git Bash or MINGW64 terminal, you may experience TTY or interactive shell problems.
+- **Solution**:
+   * Use Windows CMD or PowerShell
+   * Or use the `winpty` prefix:
+   ```bash
+   winpty docker-compose exec web bash
+   winpty docker-compose exec web python manage.py createsuperuser
+   ```
+
+#### Additional Information
+- To check container status: `docker-compose ps`
+- To view container logs: `docker-compose logs -f web`
+- To restart containers if there's an issue: `docker-compose down && docker-compose up -d`
+- When working with Docker, always check error messages in the terminal or command prompt.
+
 ## Türkçe
 
 Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip etmek için geliştirilmiş kapsamlı bir web uygulamasıdır. Sistem, parça üretimi, stok yönetimi, montaj süreci ve üretim istatistiklerini takip etmek için tasarlanmıştır.
@@ -485,8 +516,8 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
 
 1. Projeyi klonlayın:
    ```bash
-   git clone https://github.com/kullanici/hava-araci-uretim.git
-   cd hava-araci-uretim
+   git clone https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application.git
+   cd aircraft-manufacturing-web-application
    ```
 
 2. Sanal ortam oluşturun ve aktif edin:
@@ -546,6 +577,11 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
    ```
 
 4. Superuser oluşturun:
+   Windows kullanıcıları için:
+   ```bash
+   winpty docker-compose exec web python manage.py createsuperuser
+   ```
+   Diğer işletim sistemleri için:
    ```bash
    docker-compose exec web python manage.py createsuperuser
    ```
@@ -555,8 +591,7 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
    docker-compose exec web python manage.py collectstatic --noinput
    ```
 
-6. Uygulamayı kontrol etme:
-   Tarayıcınızda `http://localhost:8000` adresine gidin.
+6. Uygulamayı kontrol etme: Tarayıcınızda `http://localhost:8000` adresine gidin.
 
 ## 📖 Kullanım
 
@@ -764,11 +799,17 @@ Bu proje MIT lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICE
 
 ---
 
-## İletişim
+## Contact | İletişim
 
-Proje Yöneticisi - [@omerfeyzioglu](https://github.com/omerfeyzioglu)
+### English
+For questions and support, please contact:
+- Project Manager: [@omerfeyzioglu](https://github.com/omerfeyzioglu)
+- Project Repository: [https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application](https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application)
 
-Proje Linki: [https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application](https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application)
+### Türkçe
+Sorularınız ve destek için lütfen iletişime geçin:
+- Proje Yöneticisi: [@omerfeyzioglu](https://github.com/omerfeyzioglu)
+- Proje Deposu: [https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application](https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application)
 
 # Docker Kullanımı ve Karşılaşılabilecek Sorunlar
 
@@ -821,18 +862,18 @@ Projenin Docker ile çalıştırılması için aşağıdaki adımları izleyin:
 
 ### 3. URL Namespace Uyarıları
 - **Hata Mesajı**: "URL namespace 'admin' isn't unique."
-- **Açıklama**: Bu uyarı, URL çakışmalarını gösterir ancak uygulamanın çalışmasını etkilemez. 
+- **Açıklama**: Bu uyarı, URL çakışmalarını gösterir ancak uygulamanın çalışmasını etkilemez.
 - **Çözüm**: Uygulamanın çalışmasını engellemediği için görmezden gelinebilir. İsterseniz, projenin ilerleyen aşamalarında URLs düzenini optimize edebilirsiniz.
 
 ### 4. Windows MINGW64 Terminal Sorunları
 - **Sorun**: Windows Git Bash veya MINGW64 terminali kullanırken TTY veya interaktif shell sorunları yaşanabilir.
-- **Çözüm**: 
-  - Windows CMD veya PowerShell kullanın
-  - Veya `winpty` önekini kullanın:
-  ```bash
-  winpty docker-compose exec web bash
-  winpty docker-compose exec web python manage.py createsuperuser
-  ```
+- **Çözüm**:
+   * Windows CMD veya PowerShell kullanın
+   * Veya `winpty` önekini kullanın:
+   ```bash
+   winpty docker-compose exec web bash
+   winpty docker-compose exec web python manage.py createsuperuser
+   ```
 
 ## Ek Bilgiler
 - Container durumunu kontrol etmek için: `docker-compose ps`
