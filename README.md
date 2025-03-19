@@ -8,6 +8,9 @@
   - ℹ️ **Usage Notes:** [docs/images/README.txt](docs/images/readme.txt) - Important information about system functionality
 - 📘 **Technical Documentation:** [docs/technical_documentation.md](docs/technical_documentation.md) - Detailed technical design and implementation
 - 📗 **API Documentation:** [docs/api_documentation.md](docs/api_documentation.md) - API endpoints and usage examples
+  - 🔍 **Swagger UI:** [/api/docs/](/api/docs/) - Interactive API documentation
+  - 📖 **ReDoc:** [/api/redoc/](/api/redoc/) - Alternative API documentation
+  - 📄 **OpenAPI Schema:** [/api/schema/](/api/schema/) - Raw API schema
 
 ### Türkçe
 - 📊 **Diyagramlar:** [docs/diagrams/](docs/diagrams/) - Sistem mimarisi, ER diyagramları ve uygulama akışları
@@ -15,6 +18,9 @@
   - ℹ️ **Kullanım Notları:** [docs/images/README.txt](docs/images/README.txt) - Sistem özellikleri hakkında önemli bilgiler
 - 📘 **Teknik Dokümantasyon:** [docs/technical_documentation.md](docs/technical_documentation.md) - Detaylı teknik tasarım ve işleyiş
 - 📗 **API Dokümantasyonu:** [docs/api_documentation.md](docs/api_documentation.md) - API endpoint'leri ve kullanım örnekleri
+  - 🔍 **Swagger UI:** [/api/docs/](/api/docs/) - Etkileşimli API dokümantasyonu
+  - 📖 **ReDoc:** [/api/redoc/](/api/redoc/) - Alternatif API dokümantasyonu
+  - 📄 **OpenAPI Şeması:** [/api/schema/](/api/schema/) - Ham API şeması
 
 ---
 
