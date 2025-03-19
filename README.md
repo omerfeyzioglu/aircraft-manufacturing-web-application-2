@@ -723,9 +723,9 @@ winpty docker-compose exec web python manage.py createsuperuser
 ### English
 For questions and support, please contact:
 - Project Manager: [@omerfeyzioglu](https://github.com/omerfeyzioglu)
-- Project Repository: [https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application](https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application-2)
+- Project Repository: [https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application-2](https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application-2)
 
 ### Türkçe
 Sorularınız ve destek için lütfen iletişime geçin:
 - Proje Yöneticisi: [@omerfeyzioglu](https://github.com/omerfeyzioglu)
-- Proje Deposu: [https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application](https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application) 
+- Proje Deposu: [https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application-2](https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application) 
