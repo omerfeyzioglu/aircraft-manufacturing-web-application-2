@@ -11,6 +11,7 @@
 
 *there is a form which can be slided easily between user login form and admin login form. admin form redirects you admin panel.
 *username: admin, Password: admin — this is a superuser. A new superuser can be created using createsuperuser, and after logging into the admin panel, all necessary 
+
 *only the assembly team can view the aircraft page. Each assembly team can only see the aircraft assigned to them and can add or remove parts from it.
 all teams have the right to produce or recycle only their own parts.
 *filters are detailed and updated in real-time.
