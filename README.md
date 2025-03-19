@@ -1,5 +1,21 @@
 # Baykar Hava Aracı Üretim Takip Sistemi
 
+## 📁 Project Documentation & Screenshots
+
+### English
+- 📊 **Diagrams:** [docs/diagrams/](docs/diagrams/) - System architecture, ER diagrams, and application flow charts
+- 📷 **Screenshots:** [docs/images/](docs/images/) - User interface screenshots and usage examples
+- 📘 **Technical Documentation:** [docs/technical_documentation.md](docs/technical_documentation.md) - Detailed technical design and implementation
+- 📗 **API Documentation:** [docs/api_documentation.md](docs/api_documentation.md) - API endpoints and usage examples
+
+### Türkçe
+- 📊 **Diyagramlar:** [docs/diagrams/](docs/diagrams/) - Sistem mimarisi, ER diyagramları ve uygulama akışları
+- 📷 **Ekran Görüntüleri:** [docs/images/](docs/images/) - Arayüz ve kullanım örneklerinin ekran görüntüleri
+- 📘 **Teknik Dokümantasyon:** [docs/technical_documentation.md](docs/technical_documentation.md) - Detaylı teknik tasarım ve işleyiş
+- 📗 **API Dokümantasyonu:** [docs/api_documentation.md](docs/api_documentation.md) - API endpoint'leri ve kullanım örnekleri
+
+---
+
 [English](#english) | [Türkçe](#türkçe)
 
 ## English
