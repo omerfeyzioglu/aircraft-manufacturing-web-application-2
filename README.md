@@ -5,12 +5,14 @@
 ### English
 - 📊 **Diagrams:** [docs/diagrams/](docs/diagrams/) - System architecture, ER diagrams, and application flow charts
 - 📷 **Screenshots:** [docs/images/](docs/images/) - User interface screenshots and usage examples
+  - ℹ️ **Usage Notes:** [docs/images/README.txt](docs/images/README.txt) - Important information about system functionality
 - 📘 **Technical Documentation:** [docs/technical_documentation.md](docs/technical_documentation.md) - Detailed technical design and implementation
 - 📗 **API Documentation:** [docs/api_documentation.md](docs/api_documentation.md) - API endpoints and usage examples
 
 ### Türkçe
 - 📊 **Diyagramlar:** [docs/diagrams/](docs/diagrams/) - Sistem mimarisi, ER diyagramları ve uygulama akışları
 - 📷 **Ekran Görüntüleri:** [docs/images/](docs/images/) - Arayüz ve kullanım örneklerinin ekran görüntüleri
+  - ℹ️ **Kullanım Notları:** [docs/images/README.txt](docs/images/README.txt) - Sistem özellikleri hakkında önemli bilgiler
 - 📘 **Teknik Dokümantasyon:** [docs/technical_documentation.md](docs/technical_documentation.md) - Detaylı teknik tasarım ve işleyiş
 - 📗 **API Dokümantasyonu:** [docs/api_documentation.md](docs/api_documentation.md) - API endpoint'leri ve kullanım örnekleri
 
