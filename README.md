@@ -341,24 +341,6 @@ baykar/
 - When a part is used in an aircraft, it is deducted from stock
 - Alert is given when stock level falls below minimum level
 
-#### Database Relationship Diagram
-
-![Database Relationship Diagram](docs/diagrams/database_diagram.png)
-
-*Figure 1: Database Entity Relationship Diagram showing the relationships between all database models*
-
-#### Aircraft Production State Diagram
-
-![Aircraft Production State Diagram](docs/diagrams/state_diagram.png)
-
-*Figure 2: State Diagram showing the various states an aircraft goes through during manufacturing*
-
-#### Assembly Process Activity Diagram
-
-![Assembly Process Activity Diagram](docs/diagrams/activity_diagram.png)
-
-*Figure 3: Activity Diagram illustrating the workflow of aircraft assembly process*
-
 ### Security Measures
 - Django's built-in security features (CSRF protection, XSS protection, etc.)
 - User authentication and authorization
