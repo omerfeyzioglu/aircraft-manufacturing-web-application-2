@@ -1,11 +1,18 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.http import JsonResponse, HttpResponse
+from django.urls import path, include
+from django.db import transaction
+from django.db.models import Q, Count, Sum, F
+from django.contrib.auth.views import LoginView
+from django.core.exceptions import ValidationError
 from rest_framework import viewsets, status, permissions
-from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import F, Sum, Count, Q
-from .models import Part, Team, Aircraft, Production, AircraftPart
-from .models.constants import TEAM_TYPES, AIRCRAFT_TYPES, REQUIRED_PARTS
+from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiParameter
+from .models import Team, Part, Aircraft, AircraftPart, TEAM_TYPES, AIRCRAFT_TYPES, REQUIRED_PARTS, Production
 from .serializers import (
     PartSerializer, TeamSerializer, AircraftSerializer,
     ProductionSerializer, AircraftPartSerializer, UserSerializer
@@ -13,9 +20,7 @@ from .serializers import (
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib import messages
-from django.http import JsonResponse
 from django.core.exceptions import ValidationError
-from django.contrib.auth.models import User
 from django.db.models.functions import TruncDate
 import json
 from rest_framework.permissions import IsAuthenticated
@@ -23,7 +28,6 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiPara
 from django.template.response import TemplateResponse
 from django.contrib import admin
 from django.contrib.auth import login as auth_login
-from django.contrib.auth.views import LoginView
 from django.core.serializers.json import DjangoJSONEncoder
 from django.contrib.auth import authenticate
 from django.db import transaction
@@ -583,10 +587,13 @@ class PartViewSet(viewsets.ModelViewSet):
         # Request verisini değiştirmek için kopyalayalım
         request_data = request.data.copy()
         
+        # Get the instance before it's updated
+        instance = self.get_object()
+        old_stock = instance.stock
+        
         # Süper kullanıcı için kontrol yapma
         if request.user.is_superuser:
             # Don't allow changing team_type or aircraft_type
-            instance = self.get_object()
             if 'team_type' in request_data and request_data['team_type'] != instance.team_type:
                 return Response(
                     {'detail': 'Parçanın takım tipini değiştiremezsiniz.'},
@@ -609,6 +616,24 @@ class PartViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(instance, data=request_data, partial=True)
             serializer.is_valid(raise_exception=True)
             self.perform_update(serializer)
+            
+            # Check if stock has increased
+            new_stock = serializer.instance.stock
+            stock_increase = new_stock - old_stock
+            
+            # If stock has increased, create a Production record
+            if stock_increase > 0:
+                # Find the team associated with the current user
+                user_team = Team.objects.filter(members=request.user).first()
+                if user_team:
+                    # Create a Production record to track this increase
+                    Production.objects.create(
+                        team=user_team,
+                        part=serializer.instance,
+                        quantity=stock_increase,
+                        created_by=request.user
+                    )
+            
             return Response(serializer.data)
         
         # Get user's team
@@ -622,7 +647,6 @@ class PartViewSet(viewsets.ModelViewSet):
             )
         
         # Only staff or team members can update their parts
-        instance = self.get_object()
         if not request.user.is_staff and user_team.team_type != instance.team_type:
             return Response(
                 {'detail': 'Sadece kendi takımınızın parçalarını güncelleyebilirsiniz.'},
@@ -652,6 +676,21 @@ class PartViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=request_data, partial=True)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+        
+        # Check if stock has increased
+        new_stock = serializer.instance.stock
+        stock_increase = new_stock - old_stock
+        
+        # If stock has increased, create a Production record
+        if stock_increase > 0:
+            # Create a Production record to track this increase
+            Production.objects.create(
+                team=user_team,
+                part=serializer.instance,
+                quantity=stock_increase,
+                created_by=request.user
+            )
+        
         return Response(serializer.data)
     
     @extend_schema(

@@ -38,6 +38,16 @@ Baykar Aircraft Production Tracking System is a comprehensive web application de
 - **Aircraft Assembly**: Assembly team combines compatible parts to produce aircraft
 - **Production Statistics**: Visualization of production processes with graphs and tables
 - **Multi-language Support**: Turkish and English language options
+- **REST API**: Complete RESTful API for all system functionality
+
+#### Key Highlights
+- **Team-Based Production System**: Each team can only produce parts within their domain of expertise
+- **Part-Team Type Validation**: System validates that teams can only produce their designated part types
+- **Part Compatibility Checking**: Parts are aircraft-specific and cannot be used across different aircraft models
+- **Stock Management**: Automatic updates of inventory when parts are produced or used in aircraft assembly
+- **Production Tracking**: Each stock increase is recorded as a production event and attributed to the team
+- **Low Stock Alerts**: System warns when stock levels fall below the minimum threshold
+- **Complete CRUD Operations**: Full Create, Read, Update, Delete functionality for all resources
 
 #### Aircraft Models
 - TB2 (Bayraktar TB2)
@@ -135,28 +145,20 @@ Baykar Aircraft Production Tracking System is a comprehensive web application de
 9. Visit `http://127.0.0.1:8000/` in your browser to view the application.
 
 #### Docker Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application.git
-   cd aircraft-manufacturing-web-application
-   ```
+The easiest way to get started is using Docker:
 
-2. Start containers with Docker Compose:
-   ```bash
-   docker-compose up -d
-   ```
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/baykar-production.git
+cd baykar-production
 
-3. Run database migrations:
-   ```bash
-   docker-compose exec web python manage.py migrate
-   ```
+# Start the Docker containers
+docker-compose up -d
 
-4. Create superuser:
-   ```bash
-   docker-compose exec web python manage.py createsuperuser
-   ```
-
-5. Visit `http://localhost:8000/` in your browser to view the application.
+# The application will be available at:
+# http://localhost:8000
+# API documentation: http://localhost:8000/api/schema/swagger/
+```
 
 ### Usage
 
@@ -472,6 +474,16 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
 - **Uçak Montajı**: Montaj takımının uyumlu parçaları birleştirerek uçak üretmesi
 - **Üretim İstatistikleri**: Üretim süreçlerinin grafikler ve tablolarla görselleştirilmesi
 - **Çoklu Dil Desteği**: Türkçe ve İngilizce dil seçenekleri
+- **REST API**: Tüm sistem işlevselliği için eksiksiz RESTful API
+
+#### Önemli Özellikler
+- **Takım Tabanlı Üretim Sistemi**: Her takım yalnızca kendi uzmanlık alanındaki parçaları üretebilir
+- **Parça-Takım Tipi Doğrulama**: Sistem, takımların yalnızca belirlenmiş parça tiplerini üretebilmesini doğrular
+- **Parça Uyumluluk Kontrolü**: Parçalar hava aracına özeldir ve farklı hava aracı modelleri arasında kullanılamaz
+- **Stok Yönetimi**: Parçalar üretildiğinde veya hava aracı montajında kullanıldığında envanterin otomatik güncellenmesi
+- **Üretim İzleme**: Her stok artışı bir üretim olayı olarak kaydedilir ve takıma atfedilir
+- **Düşük Stok Uyarıları**: Stok seviyeleri minimum eşiğin altına düştüğünde sistem uyarı verir
+- **Tam CRUD İşlemleri**: Tüm kaynaklar için eksiksiz Oluşturma, Okuma, Güncelleme, Silme işlevselliği
 
 ### Uçak Modelleri
 
@@ -577,300 +589,107 @@ Bu proje, Baykar'ın İHA (İnsansız Hava Aracı) üretim süreçlerini takip e
 9. Tarayıcınızda `http://127.0.0.1:8000/` adresine giderek uygulamayı görüntüleyin.
 
 ### Docker ile Kurulum
+Başlamanın en kolay yolu Docker kullanmaktır:
 
-1. Projeyi klonlayın:
-   ```bash
-   git clone https://github.com/omerfeyzioglu/aircraft-manufacturing-web-application.git
-   cd aircraft-manufacturing-web-application
-   ```
+```bash
+# Depoyu klonlayın
+git clone https://github.com/kullaniciadi/baykar-production.git
+cd baykar-production
 
-2. Docker Compose ile konteynerları başlatın:
-   ```bash
-   docker-compose up -d
-   ```
+# Docker konteynerlerini başlatın
+docker-compose up -d
 
-3. Veritabanı migrasyonlarını yapın:
-   ```bash
-   docker-compose exec web python manage.py migrate
-   ```
-
-4. Superuser oluşturun:
-   Windows kullanıcıları için:
-   ```bash
-   winpty docker-compose exec web python manage.py createsuperuser
-   ```
-   Diğer işletim sistemleri için:
-   ```bash
-   docker-compose exec web python manage.py createsuperuser
-   ```
-
-5. Statik dosyaları toplama:
-   ```bash
-   docker-compose exec web python manage.py collectstatic --noinput
-   ```
-
-6. Uygulamayı kontrol etme: Tarayıcınızda `http://localhost:8000` adresine gidin.
-
-## 📖 Kullanım
-
-### Kullanıcı Rolleri ve İzinler
-
-Sistem, kullanıcıları takımlara atar ve her takımın kendi sorumluluk alanı vardır:
-
-- **Aviyonik Takımı**: Sadece aviyonik parçaları üretebilir
-- **Gövde Takımı**: Sadece gövde parçaları üretebilir
-- **Kanat Takımı**: Sadece kanat parçaları üretebilir
-- **Kuyruk Takımı**: Sadece kuyruk parçaları üretebilir
-- **Montaj Takımı**: Parça üretemez, sadece uçak montajı yapabilir
-
-### Parça Yönetimi
-
-1. **Parça Üretimi**:
-   - İlgili takım üyesi olarak giriş yapın
-   - "Parçalar" sayfasına gidin
-   - "Yeni Parça Üret" butonuna tıklayın
-   - Parça tipini, uçak modelini ve miktarı seçin
-   - "Üret" butonuna tıklayın
-
-2. **Parça Listesi**:
-   - Tüm parçaları görüntüleyin
-   - Parça tipi, uçak modeli ve stok durumuna göre filtreleme yapın
-   - Düşük stok seviyesindeki parçaları görüntüleyin
-
-### Takım Yönetimi
-
-1. **Takım Oluşturma** (Admin):
-   - Admin paneline giriş yapın
-   - "Takımlar" bölümüne gidin
-   - "Takım Ekle" butonuna tıklayın
-   - Takım adı ve tipini belirleyin
-   - Takım üyelerini seçin
-
-2. **Takım Listesi**:
-   - Tüm takımları görüntüleyin
-   - Takım tipine göre filtreleme yapın
-   - Takım üyelerini ve üretim istatistiklerini görüntüleyin
-
-### Uçak Montaj Süreci
-
-1. **Yeni Uçak Başlatma** (Montaj Takımı):
-   - Montaj takımı üyesi olarak giriş yapın
-   - "Uçaklar" sayfasına gidin
-   - "Yeni Uçak" butonuna tıklayın
-   - Uçak modelini seçin
-   - "Başlat" butonuna tıklayın
-
-2. **Parça Ekleme** (Montaj Takımı):
-   - Uçak listesinden bir uçak seçin
-   - "Parça Ekle" butonuna tıklayın
-   - Eklenecek parçayı seçin
-   - "Ekle" butonuna tıklayın
-   - Tüm gerekli parçalar eklendiğinde uçak otomatik olarak tamamlanır
-
-3. **Uçak Listesi**:
-   - Tüm uçakları görüntüleyin
-   - Uçak modeli, durum ve montaj takımına göre filtreleme yapın
-   - Tamamlanma yüzdesini ve eksik parçaları görüntüleyin
-
-### Stok Takibi
-
-1. **Stok Durumu**:
-   - Ana sayfadaki "Düşük Stok Uyarıları" bölümünden kritik stok seviyesindeki parçaları görüntüleyin
-   - "Parçalar" sayfasından detaylı stok bilgilerini görüntüleyin
-
-2. **Üretim Geçmişi**:
-   - "Parçalar" sayfasından bir parçanın üretim geçmişini görüntüleyin
-   - Tarih, miktar ve üreten takım bilgilerini görüntüleyin
-
-## 🔌 API Dokümantasyonu
-
-Sistem, tüm işlevlere programatik erişim sağlayan kapsamlı bir REST API sunar:
-
-- **API Endpoint**: `/api/`
-- **Swagger UI**: `/api/docs/`
-- **ReDoc**: `/api/redoc/`
-- **OpenAPI Şeması**: `/api/schema/`
-
-### Temel API Endpointleri
-
-- `/api/parts/`: Parça yönetimi
-- `/api/teams/`: Takım yönetimi
-- `/api/aircraft/`: Uçak yönetimi
-
-### Özel API Aksiyonları
-
-- `/api/teams/{id}/produce_part/`: Parça üretimi
-- `/api/aircraft/{id}/add_part/`: Uçağa parça ekleme
-- `/api/aircraft/{id}/parts_summary/`: Uçak parça özeti
-
-## 📂 Proje Yapısı
-
-```
-baykar/
-├── baykar/                  # Proje ana dizini
-│   ├── settings.py          # Proje ayarları
-│   ├── urls.py              # Ana URL yapılandırması
-│   ├── wsgi.py              # WSGI yapılandırması
-│   └── asgi.py              # ASGI yapılandırması
-├── production/              # Üretim uygulaması
-│   ├── migrations/          # Veritabanı migrasyonları
-│   ├── templates/           # Uygulama şablonları
-│   ├── models.py            # Veri modelleri
-│   ├── views.py             # Görünümler
-│   ├── urls.py              # URL yapılandırması
-│   ├── serializers.py       # API serileştiricileri
-│   ├── signals.py           # Django sinyalleri
-│   └── apps.py              # Uygulama yapılandırması
-├── templates/               # Proje şablonları
-│   ├── base.html            # Ana şablon
-│   ├── home.html            # Ana sayfa
-│   ├── registration/        # Kimlik doğrulama şablonları
-│   ├── parts/               # Parça şablonları
-│   ├── teams/               # Takım şablonları
-│   └── aircraft/            # Uçak şablonları
-├── static/                  # Statik dosyalar
-│   ├── css/                 # CSS dosyaları
-│   ├── js/                  # JavaScript dosyaları
-│   └── img/                 # Resimler
-├── media/                   # Kullanıcı yüklenen dosyalar
-├── requirements.txt         # Python bağımlılıkları
-├── manage.py                # Django yönetim betiği
-├── Dockerfile               # Docker yapılandırması
-├── docker-compose.yml       # Docker Compose yapılandırması
-└── README.md                # Proje dokümantasyonu
+# Uygulama şu adreste kullanılabilir olacaktır:
+# http://localhost:8000
+# API dokümantasyonu: http://localhost:8000/api/schema/swagger/
 ```
 
-## 📊 Veri Modeli
+### REST API
+Sistem, tüm işlemler için kapsamlı bir RESTful API sağlar:
 
-### Temel Modeller
-1. **Parça (Part)**
-   - name: Parça adı
-   - team_type: Üretici takım tipi
-   - aircraft_type: Uçak tipi
-   - stock: Stok miktarı
-   - minimum_stock: Minimum stok seviyesi
+- `/api/parts/`: Parçaları yönetin (GET, POST, PUT, DELETE)
+- `/api/teams/`: Takımları yönetin (GET, POST, PUT, DELETE)
+- `/api/teams/{id}/produce_part/`: Belirli bir takım için parça üretin
+- `/api/teams/{id}/add_member/`: Bir takıma üye ekleyin
+- `/api/teams/{id}/remove_member/`: Bir takımdan üye çıkarın
+- `/api/aircraft/`: Hava araçlarını yönetin (GET, POST, PUT, DELETE)
+- `/api/aircraft/{id}/complete_production/`: Hava aracı üretimini tamamlayın
+- `/api/users/`: Kullanıcıları yönetin (GET, POST, PUT)
 
-2. **Takım (Team)**
-   - name: Takım adı
-   - team_type: Takım tipi
-   - members: Takım üyeleri (User modeli ile ilişki)
+Uygulamayı başlattıktan sonra API dokümantasyonuna `/api/schema/swagger/` adresinden erişilebilir.
 
-3. **Uçak (Aircraft)**
-   - aircraft_type: Uçak tipi
-   - assembly_team: Montaj takımı (Team modeli ile ilişki)
-   - parts: Uçağa eklenen parçalar (Part modeli ile ilişki)
-   - created_at: Oluşturulma tarihi
-   - completed_at: Tamamlanma tarihi
+### Common Issues
 
-4. **UçakParça (AircraftPart)**
-   - aircraft: Uçak (Aircraft modeli ile ilişki)
-   - part: Parça (Part modeli ile ilişki)
-   - added_at: Eklenme tarihi
-   - added_by: Ekleyen kullanıcı (User modeli ile ilişki)
+#### 1. TTY Error
+- **Error Message**: "Superuser creation skipped due to not running in a TTY."
+- **Solution**: For Windows users, use the `winpty` command to create a superuser:
+```bash
+winpty docker-compose exec web python manage.py createsuperuser
+```
 
-5. **Üretim (Production)**
-   - team: Üreten takım (Team modeli ile ilişki)
-   - part: Üretilen parça (Part modeli ile ilişki)
-   - quantity: Üretim miktarı
-   - created_at: Üretim tarihi
-   - created_by: Üreten kullanıcı (User modeli ile ilişki)
+#### 2. Docker Compose Version Warning
+- **Error Message**: "version is obsolete"
+- **Solution**: This is a warning and does not affect the system. You can continue using the current version of Docker Compose.
 
-### İş Kuralları
-- Her takım yalnızca kendi tipine uygun parçaları üretebilir
-- Montaj takımı parça üretemez, yalnızca uçak montajı yapabilir
-- Her parça belirli bir uçak modeline özgüdür ve diğer modellerde kullanılamaz
-- Her uçak modeli belirli sayıda ve tipte parça gerektirir
-- Bir parça uçakta kullanıldığında stoktan düşülür
-- Stok seviyesi minimum seviyenin altına düştüğünde uyarı verilir
+#### 3. URL Namespace Warnings
+- **Error Message**: "URL namespace 'admin' isn't unique."
+- **Description**: This warning shows URL conflicts but does not affect the operation of the application.
+- **Solution**: Can be ignored as it doesn't prevent the application from working. If desired, you can optimize the URL structure in later stages of the project.
 
-### Veritabanı İlişki Diyagramı
+#### 4. Windows MINGW64 Terminal Issues
+- **Issue**: When using Windows Git Bash or MINGW64 terminal, you may experience TTY or interactive shell problems.
+- **Solution**:
+   * Use Windows CMD or PowerShell
+   * Or use the `winpty` prefix:
+```bash
+winpty docker-compose exec web bash
+winpty docker-compose exec web python manage.py createsuperuser
+```
 
-![Veritabanı İlişki Diyagramı](docs/diagrams/database_diagram.png)
-
-*Şekil 1: Tüm veritabanı modelleri arasındaki ilişkileri gösteren Veritabanı İlişki Diyagramı*
-
-### Uçak Üretim Durum Diyagramı
-
-![Uçak Üretim Durum Diyagramı](docs/diagrams/state_diagram.png)
-
-*Şekil 2: Bir uçağın üretim sürecinde geçtiği çeşitli durumları gösteren Durum Diyagramı*
-
-### Montaj Süreci Aktivite Diyagramı
-
-![Montaj Süreci Aktivite Diyagramı](docs/diagrams/activity_diagram.png)
-
-*Şekil 3: Uçak montaj sürecinin iş akışını gösteren Aktivite Diyagramı*
-
-## 🔒 Güvenlik Önlemleri
-- Django'nun yerleşik güvenlik özellikleri (CSRF koruması, XSS koruması, vb.)
-- Kullanıcı kimlik doğrulama ve yetkilendirme
-- Form doğrulama ve veri temizleme
-- Güvenli şifre politikaları
-- HTTPS desteği (üretim ortamında)
-- API erişim kontrolü
-
-## ⚡ Performans Optimizasyonları
-- Veritabanı sorgu optimizasyonları
-- Önbellek kullanımı
-- Tembel yükleme (Lazy loading)
-- Sayfalama
-- Asenkron AJAX istekleri
-- Statik dosya sıkıştırma ve CDN desteği
-
-## 🤝 Katkıda Bulunma
-1. Projeyi fork edin
-2. Özellik dalı oluşturun (`git checkout -b özellik/muhteşem-özellik`)
-3. Değişiklikleri commit edin (`git commit -m 'Bazı muhteşem özellikler ekle'`)
-4. Dalı push edin (`git push origin özellik/muhteşem-özellik`)
-5. Pull Request açın
-
-## 📄 Lisans
-Bu proje MIT Lisansı altında lisanslanmıştır. Detaylar için [LICENSE](LICENSE) dosyasına bakın.
-
-## 🐳 Docker Kullanımı ve Sorun Giderme
+#### Additional Information
+- To check container status: `docker-compose ps`
+- To view container logs: `docker-compose logs -f web`
+- To restart containers if there's an issue: `docker-compose down && docker-compose up -d`
+- When working with Docker, always check error messages in the terminal or command prompt.
 
 ### Docker Kurulumu
-Projeyi Docker ile çalıştırmak için aşağıdaki adımları izleyin:
+Başlamanın en kolay yolu Docker kullanmaktır:
 
-1. **Docker ve Docker Compose Kurulumu**: Docker ve Docker Compose'un sisteminizde kurulu olduğundan emin olun.
+```bash
+# Depoyu klonlayın
+git clone https://github.com/kullaniciadi/baykar-production.git
+cd baykar-production
 
-2. **Proje Klasörüne Gitme**: Terminal veya komut istemcisinde proje klasörüne gidin.
+# Docker konteynerlerini başlatın
+docker-compose up -d
 
-3. **Container'ları Başlatma**:
-   ```bash
-   docker-compose up -d
-   ```
+# Uygulama şu adreste kullanılabilir olacaktır:
+# http://localhost:8000
+# API dokümantasyonu: http://localhost:8000/api/schema/swagger/
+```
 
-4. **Veritabanı Migrasyonlarını Uygulama**:
-   ```bash
-   docker-compose exec web python manage.py migrate
-   ```
+### REST API
+Sistem, tüm işlemler için kapsamlı bir RESTful API sağlar:
 
-5. **Superuser Oluşturma**:
-   Windows kullanıcıları için:
-   ```bash
-   winpty docker-compose exec web python manage.py createsuperuser
-   ```
-   Diğer işletim sistemleri için:
-   ```bash
-   docker-compose exec web python manage.py createsuperuser
-   ```
+- `/api/parts/`: Parçaları yönetin (GET, POST, PUT, DELETE)
+- `/api/teams/`: Takımları yönetin (GET, POST, PUT, DELETE)
+- `/api/teams/{id}/produce_part/`: Belirli bir takım için parça üretin
+- `/api/teams/{id}/add_member/`: Bir takıma üye ekleyin
+- `/api/teams/{id}/remove_member/`: Bir takımdan üye çıkarın
+- `/api/aircraft/`: Hava araçlarını yönetin (GET, POST, PUT, DELETE)
+- `/api/aircraft/{id}/complete_production/`: Hava aracı üretimini tamamlayın
+- `/api/users/`: Kullanıcıları yönetin (GET, POST, PUT)
 
-6. **Statik Dosyaları Toplama**:
-   ```bash
-   docker-compose exec web python manage.py collectstatic --noinput
-   ```
-
-7. **Uygulamayı Kontrol Etme**: Tarayıcınızda `http://localhost:8000` adresine gidin.
+Uygulamayı başlattıktan sonra API dokümantasyonuna `/api/schema/swagger/` adresinden erişilebilir.
 
 ### Karşılaşılabilecek Sorunlar
 
 #### 1. TTY Hatası
 - **Hata Mesajı**: "Superuser creation skipped due to not running in a TTY."
-- **Çözüm**: Windows kullanıcıları için `winpty` komutunu kullanarak superuser oluşturun:
-  ```bash
-  winpty docker-compose exec web python manage.py createsuperuser
-  ```
+- **Çözüm**: Windows kullanıcıları için `winpty` komutunu kullanarak süper kullanıcı oluşturun:
+```bash
+winpty docker-compose exec web python manage.py createsuperuser
+```
 
 #### 2. Docker Compose Versiyon Uyarısı
 - **Hata Mesajı**: "version is obsolete"
@@ -886,15 +705,15 @@ Projeyi Docker ile çalıştırmak için aşağıdaki adımları izleyin:
 - **Çözüm**:
    * Windows CMD veya PowerShell kullanın
    * Veya `winpty` önekini kullanın:
-   ```bash
-   winpty docker-compose exec web bash
-   winpty docker-compose exec web python manage.py createsuperuser
-   ```
+```bash
+winpty docker-compose exec web bash
+winpty docker-compose exec web python manage.py createsuperuser
+```
 
 ### Ek Bilgiler
-- Container durumunu kontrol etmek için: `docker-compose ps`
-- Container loglarını görüntülemek için: `docker-compose logs -f web`
-- Bir sorun olduğunda containerleri yeniden başlatmak için: `docker-compose down && docker-compose up -d`
+- Konteyner durumunu kontrol etmek için: `docker-compose ps`
+- Konteyner loglarını görüntülemek için: `docker-compose logs -f web`
+- Bir sorun olduğunda konteynerleri yeniden başlatmak için: `docker-compose down && docker-compose up -d`
 - Docker ile çalışırken, her zaman terminal veya komut istemcisinde hata mesajlarını kontrol edin.
 
 ---

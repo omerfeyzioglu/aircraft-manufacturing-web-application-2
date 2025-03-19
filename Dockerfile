@@ -15,8 +15,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project
 COPY . .
 
+# Make entrypoint script executable
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
 # Run migrations
 RUN python manage.py collectstatic --noinput
 
-# Run server
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"] 
+# Set entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"] 
