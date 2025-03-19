@@ -5,7 +5,7 @@
 ### English
 - 📊 **Diagrams:** [docs/diagrams/](docs/diagrams/) - System architecture, ER diagrams, and application flow charts
 - 📷 **Screenshots:** [docs/images/](docs/images/) - User interface screenshots and usage examples
-  - ℹ️ **Usage Notes:** [docs/images/README.txt](docs/images/README.txt) - Important information about system functionality
+  - ℹ️ **Usage Notes:** [docs/images/README.txt](docs/images/readme.txt) - Important information about system functionality
 - 📘 **Technical Documentation:** [docs/technical_documentation.md](docs/technical_documentation.md) - Detailed technical design and implementation
 - 📗 **API Documentation:** [docs/api_documentation.md](docs/api_documentation.md) - API endpoints and usage examples
 
